@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+dist/
+build/
+
+# Node / frontend (later phases)
+node_modules/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Docs (internal build notes, prompts, presenter scripts -- not for the repo)
+docs/
+
+# OS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/

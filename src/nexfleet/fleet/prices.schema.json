@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "nexfleet://fleet/prices.schema.json",
+  "title": "NexFleet prices.json",
+  "description": "Structural validation only — every fuel price carries a confidence status and provenance; this does not check that the price itself is currently accurate.",
+  "type": "object",
+  "required": ["fuels"],
+  "properties": {
+    "fuels": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["price_usd_per_tonne", "retrieval_date", "status", "source"],
+        "properties": {
+          "price_usd_per_tonne": {"type": "number", "exclusiveMinimum": 0},
+          "port": {"type": ["string", "null"]},
+          "retrieval_date": {"type": "string", "format": "date"},
+          "status": {"enum": ["MARKET_QUOTE", "PROXY", "ESTIMATE"]},
+          "source": {"type": "string", "minLength": 1},
+          "notes": {"type": "string"}
+        }
+      }
+    },
+    "carbon_allowances": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["price_usd_per_tco2e", "retrieval_date", "status", "source"],
+        "properties": {
+          "price_usd_per_tco2e": {"type": "number", "exclusiveMinimum": 0},
+          "port": {"type": ["string", "null"]},
+          "retrieval_date": {"type": "string", "format": "date"},
+          "status": {"enum": ["MARKET_QUOTE", "PROXY", "ESTIMATE"]},
+          "source": {"type": "string", "minLength": 1},
+          "notes": {"type": "string"}
+        }
+      }
+    },
+    "fx_rates": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["rate", "retrieval_date", "status", "source"],
+        "properties": {
+          "rate": {"type": "number", "exclusiveMinimum": 0},
+          "retrieval_date": {"type": "string", "format": "date"},
+          "status": {"enum": ["MARKET_QUOTE", "PROXY", "ESTIMATE"]},
+          "source": {"type": "string", "minLength": 1},
+          "notes": {"type": "string"}
+        }
+      }
+    }
+  }
+}
