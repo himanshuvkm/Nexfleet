@@ -208,6 +208,15 @@ export interface ExposureData {
   consistency_checks: any[];
 }
 
+export interface BaselineData {
+  total_cost_usd: number;
+  fuel_tonnes: number;
+  lifecycle_emissions_tco2e: number;
+  compliance_cost_usd: number;
+  cii_ratings: Record<string, string>;
+  vessel_breakdown: Array<Record<string, any>>;
+}
+
 export interface DemoData {
   metadata: {
     generated_at: string;
@@ -230,6 +239,7 @@ export interface DemoData {
   };
   prices: any;
   sweep: SweepData;
+  baseline?: BaselineData;
   comparable_recommendations?: ComparableRecommendations;
   exposure: ExposureData;
   optimizer_benchmark: OptimizerBenchmark;

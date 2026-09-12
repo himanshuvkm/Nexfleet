@@ -18,6 +18,10 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from nexfleet.fleet.loader import load_fleet, load_prices
+from nexfleet.regulatory.loader import load_regulations
+from nexfleet.fleet.baseline import build_default_baseline_assignments, evaluate_baseline_plan
+from nexfleet.optimization.fuel_predictors import PredictorHub
+from nexfleet.optimization.qiea_solver import generate_pareto_frontier, pareto_result_to_dict
 from nexfleet.optimization.exposure import (
     compute_exposure,
     compute_mps_crosscheck,
@@ -226,10 +230,39 @@ def build_demo_data(*, fast: bool = False, optimizer: str = "ga") -> dict:
     sweep_kwargs = FAST_SWEEP_KWARGS if fast else PRODUCTION_SWEEP_KWARGS
     exposure_kwargs = FAST_EXPOSURE_KWARGS if fast else PRODUCTION_EXPOSURE_KWARGS
 
-    # 1. Load Fleet and Price configurations
-    print("[1/6] Loading fleet and prices specifications...")
+    # 1. Load Fleet, Price, and Regulation configurations
+    print("[1/6] Loading fleet, prices, and regulations specifications...")
     fleet = load_fleet()
     prices = load_prices()
+    regulations = load_regulations()
+
+    # 1b. Evaluate Business-As-Usual (BAU) baseline plan
+    print("[1b/6] Evaluating Business-As-Usual (BAU) status-quo baseline plan...")
+    baseline_assignments = build_default_baseline_assignments(fleet)
+    baseline_result = evaluate_baseline_plan(fleet, baseline_assignments, regulations, prices)
+    baseline_comp_usd = sum(c.amount_usd for c in baseline_result.objective.compliance_costs.values())
+    baseline_dict = {
+        "total_cost_usd": baseline_result.objective.total_usd,
+        "fuel_tonnes": baseline_result.total_fuel_tonnes,
+        "lifecycle_emissions_tco2e": baseline_result.total_ghg_tco2e,
+        "compliance_cost_usd": baseline_comp_usd,
+        "cii_ratings": {f"{k[0]}_{k[1]}": v for k, v in baseline_result.cii_ratings.items()},
+        "vessel_breakdown": baseline_result.vessel_breakdown,
+    }
+
+    # 1c. Generate Multi-Objective Pareto Frontier Alternatives
+    print("[1c/6] Generating multi-objective Epsilon-Constraint Pareto frontier...")
+    pareto_pop = 15 if fast else 80
+    pareto_gen = 6 if fast else 60
+    pareto_result = generate_pareto_frontier(
+        fleet,
+        regulations,
+        prices,
+        steps=3,
+        population_size=pareto_pop,
+        n_generations=pareto_gen,
+    )
+    comparable_recommendations = pareto_result_to_dict(pareto_result, fleet, regulations, prices)
 
     # 2. Run carbon-price sweep ($0–$1000 step $25, warm-started)
     print(f"[2/6] Running carbon-price sweep ($0–$1000, step $25, warm-started) with {sweep_kwargs}...")
@@ -315,6 +348,8 @@ def build_demo_data(*, fast: bool = False, optimizer: str = "ga") -> dict:
         "prices": prices,
         "sweep": sweep_dict,
         "exposure": exposure_dict,
+        "baseline": baseline_dict,
+        "comparable_recommendations": comparable_recommendations,
         "optimizer_benchmark": load_optimizer_benchmark(optimizer),
         "fuel_predictor_benchmark": load_fuel_predictor_benchmark(),
     }
@@ -333,12 +368,12 @@ def build_demo_data(*, fast: bool = False, optimizer: str = "ga") -> dict:
     # asserting a claim that can be false for a well-optimized fleet.
     print("\n" + "=" * 60)
     print("SUMMARY HIGHLIGHTS:")
-    print(f"  - Plan Spread: ${ps.spread_usd:,.2f} USD / ₹{ps.spread_inr/1e7:,.2f} Crore")
+    print(f"  - Plan Spread: ${ps.spread_usd:,.2f} USD / INR {ps.spread_inr/1e7:,.2f} Crore")
     print(f"  - Unanimous Headline Exposed Decisions: {len(exposure_result.per_decision_deltas)}")
     print(f"  - Majority Band Exposed Decisions: {len(exposure_result.majority_band_decisions)}")
-    print(f"  - Capex Exposure (Unanimous): ${capex.total_usd:,.2f} USD / ₹{capex.total_inr/1e7:,.2f} Crore")
+    print(f"  - Capex Exposure (Unanimous): ${capex.total_usd:,.2f} USD / INR {capex.total_inr/1e7:,.2f} Crore")
     print(f"  - Capex Exposure (Majority Band): ${majority_capex.total_usd:,.2f} USD / "
-          f"₹{majority_capex.total_inr/1e7:,.2f} Crore")
+          f"INR {majority_capex.total_inr/1e7:,.2f} Crore")
     print(f"  - Total Grid Points Swept: {len(sweep_result.grid_points)}")
     print(f"  - Total Switching Points Extracted: {len(sweep_result.switching_points)}")
     print(f"  - Envelope-corrected grid points: {n_corrected}/{len(sweep_result.grid_points)}")
