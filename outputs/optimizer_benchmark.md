@@ -1,11 +1,11 @@
-# NexFleet 2.0: Optimizer Benchmark & Validation Report (2026-09-12T15:22:01Z)
+# NexFleet 2.0: Optimizer Benchmark & Validation Report (2026-09-12T17:34:28Z)
 
 ## Executive Summary & Statistical Verification
 
 - **Sample Size:** $N = 30$ independent random seeds.
 - **Mean Solution Cost:** GA = **$374,576,288** (std: $565,263) vs. QIEA = **$374,472,041** (std: $572,108).
 - **Cost Difference:** **+0.03%** (Wilcoxon Signed-Rank $p$-value = `3.7074e-01`).
-- **Mean Runtime:** GA = **2.95s** vs. QIEA = **4.03s**.
+- **Mean Runtime:** GA = **1.62s** vs. QIEA = **2.30s**.
 
 ---
 
@@ -19,7 +19,7 @@
 | **Interquartile Range (IQR)** | $908,825 | $868,511 | QIEA IQR = $868,511 |
 | **Best Seed (USD)** | $373,598,185 | $373,590,164 | Best QIEA vs GA: $8,021 |
 | **Worst Seed (USD)** | $375,553,923 | $375,854,618 | Spread bound |
-| **Mean Runtime (s)** | 2.95s | 4.03s | +36.5% overhead |
+| **Mean Runtime (s)** | 1.62s | 2.30s | +41.8% overhead |
 | **Wilcoxon Signed-Rank Test** | - | - | **p = 3.7074e-01** |
 
 ---
@@ -40,8 +40,8 @@
 
 | Sweep Metric | Classical GA | Quantum QIEA |
 |---|---|---|
-| **Sweep Runtime (s)** | 17.12s | 62.45s |
-| **Exposure Map Runtime (s)** | 50.89s | 93.27s |
+| **Sweep Runtime (s)** | 8.33s | 33.02s |
+| **Exposure Map Runtime (s)** | 24.47s | 50.52s |
 | **Switching Points Discovered** | 27 | 55 |
 | **Total Cost @ $0/t Carbon (USD)** | $370,329,510 | $370,498,981 |
 | **Total Cost @ $1,000/t Carbon (USD)** | $370,465,290 | $369,959,180 |

@@ -479,7 +479,10 @@ Optimization Comparison Across Grid ($0 - $1,000/tCO2e):
 ```
 
 #### The Honest Search Attribution
-Across three rounds of ablation experiments (`outputs/qiea_search_round3.md`):
+Across three rounds of ablation experiments (`outputs/qieagit switch main
+git pull origin main
+git push origin --delete feat/module-1-auth
+git branch -d feat/module-1-auth_search_round3.md`):
 - **What QIEA buys:** Mean-field initialization improves raw heuristic search quality by **$11.2\%$** ($\$441.9\text{M}$ vs $\$497.6\text{M}$) before local search.
 - **The Classical Polish Reality:** When the coordinate-descent polish is applied, it erases the starting gap. Both solvers converge to virtually identical plans (a $0.10\%$ margin, inside the noise band).
 - **Engineering Verdict:** QIEA returns the absolute lowest cost plan ($369.96\text{M}$), but GA is $\sim 2.4\times$ faster. Both solvers are fully supported and selectable via the `--optimizer ga|qiea` flag.
@@ -517,7 +520,10 @@ Because $\sum P = 1.0$, $\sum |\psi|^2 = 1.0$, forming a valid normalized quantu
 ### 7.2. Tensor-Train SVD Decomposition (`tt_svd`)
 Using sequential SVD sweeps (Oseledets 2011), the dense 7-dimensional probability tensor is decomposed into a chain of 3-index MPS cores:
 $$A^{(r)}_{\alpha_0, \alpha_1},\; A^{(d_1)}_{\alpha_1, \alpha_2},\; \dots,\; A^{(d_6)}_{\alpha_6, \alpha_7}$$
-The singular values $S = (\lambda_1, \lambda_2, \dots)$ at each internal bond represent the Schmidt coefficients across bipartitions of the system.
+The singular values $S = (\lambda_1, \lambda_2, \dots)$ atgit switch main
+git pull origin main
+git push origin --delete feat/module-1-auth
+git branch -d feat/module-1-auth each internal bond represent the Schmidt coefficients across bipartitions of the system.
 
 ### 7.3. Quantum Mutual Information & Reduced Density Matrices
 The true regulatory exposure of decision $d_j$ to regulatory scenario $r$ is quantified as the **Quantum Mutual Information $I(r : d_j)$**:
@@ -625,7 +631,10 @@ flowchart TD
    - `exposure`: Plan spread, capex exposure, unstable decisions list, and MPS crosscheck rows.
    - `optimizer_benchmark`: Complete GA vs. QIEA performance comparison.
    - `fuel_predictor_benchmark`: Complete 4-arm LOVO cross-validation results.
-2. **`outputs/fuel_predictor_benchmark.json` & `.md`:**
+2. **`outputs/fuel_predictor_benchmark.json` & `.md`:**git switch main
+git pull origin main
+git push origin --delete feat/module-1-auth
+git branch -d feat/module-1-auth
    Auditable machine learning benchmark reporting fold-by-fold MAPE, $R^2$, and execution times.
 3. **`outputs/optimizer_benchmark.json` & `.md`:**
    Comparative benchmark documenting sweep runtimes, switching points found, and total fleet costs for GA vs. QIEA.
@@ -700,3 +709,7 @@ tests/test_tensor_network.py ........                                    [100%]
 2. **Track F: Full-Fleet Entangled Matrix Product State:** Expanding the Born machine from 1-slot sub-tensors into a single 125-site entangled Matrix Product State using Density Matrix Renormalization Group (DMRG) bond truncation.
 3. **Retrofit & Fleet Renewal Capital Planning:** Incorporating discrete multi-year engine retrofit capital variables (`retrofit_year`, dual-fuel ammonia conversion capex, wind-assisted rotor sails).
 4. **Live Bunker API Feeds:** Automated real-time ingestion of spot bunker quotes from Singapore, Rotterdam, and Fujairah, alongside ICE EUA carbon futures.
+git switch main
+git pull origin main
+git push origin --delete feat/module-1-auth
+git branch -d feat/module-1-auth
