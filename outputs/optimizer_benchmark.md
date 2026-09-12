@@ -1,4 +1,4 @@
-# GA vs QIEA benchmark (2026-09-02T11:58:23Z)
+# GA vs QIEA benchmark (2026-09-12T15:55:52Z)
 
 Price grid: (0, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000)
 
@@ -8,9 +8,9 @@ Exposure settings: {'seeds': (0, 1), 'population_size': 60, 'n_generations': 60}
 
 | Metric | GA | QIEA |
 |---|---|---|
-| Sweep time (s) | 9.20 | 30.95 |
-| Exposure time (s) | 25.86 | 52.79 |
-| Total time (s) | 35.05 | 83.74 |
+| Sweep time (s) | 27.86 | 97.96 |
+| Exposure time (s) | 78.77 | 148.50 |
+| Total time (s) | 106.62 | 246.46 |
 | Grid points | 11 | 11 |
 | Switching points found | 27 | 55 |
 | Envelope-corrected points | 0 | 8 |

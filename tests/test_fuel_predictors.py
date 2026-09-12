@@ -11,14 +11,22 @@ from nexfleet.optimization.fuel_predictors import (
     FeatureEncoder,
     LightGbmResidualFuelModel,
     MlpResidualFuelModel,
+    PredictorHub,
+    QuantumInspiredNeuralResidualModel,
     TensorTrainResidualFuelModel,
     mape,
+    predict_with_intervals,
     r_squared,
     residual_fraction,
 )
 from nexfleet.optimization.synthetic_telemetry import generate_telemetry, leave_one_vessel_out_folds
 
-_PREDICTOR_CLASSES = (LightGbmResidualFuelModel, MlpResidualFuelModel, TensorTrainResidualFuelModel)
+_PREDICTOR_CLASSES = (
+    LightGbmResidualFuelModel,
+    MlpResidualFuelModel,
+    TensorTrainResidualFuelModel,
+    QuantumInspiredNeuralResidualModel,
+)
 
 
 @pytest.fixture(scope="module")
@@ -174,3 +182,87 @@ class TestTensorTrainResidualFuelModel:
         vessel = fleet["vessels"][0]
         result = model.fuel_consumption_tonnes(vessel, fleet, 2026, 15.0, "methanol", vessel["default_route"])
         assert result > 0
+
+
+class TestConfidenceIntervals:
+    @pytest.mark.parametrize("predictor_cls", _PREDICTOR_CLASSES)
+    def test_predict_with_intervals_returns_valid_bounds(self, predictor_cls, fleet, one_fold):
+        _, train, _ = one_fold
+        encoder = FeatureEncoder(fleet)
+        model = predictor_cls(encoder)
+        model.fit(train, fleet)
+
+        vessel = fleet["vessels"][0]
+        pred, lower, upper = model.predict_with_intervals(
+            vessel, fleet, 2026, 15.0, "vlsfo", vessel["default_route"]
+        )
+        assert 0.0 <= lower <= pred <= upper
+        assert upper - lower > 0.0
+
+    def test_physics_model_predict_with_intervals(self, fleet):
+        physics = PhysicsFuelModel()
+        vessel = fleet["vessels"][0]
+        pred, lower, upper = physics.predict_with_intervals(
+            vessel, fleet, 2026, 15.0, "vlsfo", vessel["default_route"]
+        )
+        assert 0.0 <= lower <= pred <= upper
+
+    def test_standalone_predict_with_intervals_helper(self, fleet):
+        physics = PhysicsFuelModel()
+        vessel = fleet["vessels"][0]
+        pred, lower, upper = predict_with_intervals(
+            physics, vessel, fleet, 2026, 15.0, "vlsfo", vessel["default_route"]
+        )
+        assert 0.0 <= lower <= pred <= upper
+
+
+class TestPredictorHub:
+    def test_available_models_list(self):
+        models = PredictorHub.available_models()
+        assert "physics" in models
+        assert "lightgbm" in models
+        assert "mlp" in models
+        assert "tt_svd" in models
+        assert "qnn_residual" in models
+
+    def test_get_predictor_physics(self, fleet):
+        model = PredictorHub.get_predictor("physics", fleet=fleet)
+        assert isinstance(model, PhysicsFuelModel)
+        vessel = fleet["vessels"][0]
+        tonnes = model.fuel_consumption_tonnes(vessel, fleet, 2026, 15.0, "vlsfo", vessel["default_route"])
+        assert tonnes > 0.0
+
+    def test_get_predictor_tt_svd_sub_millisecond_inference(self, fleet, table):
+        import time
+
+        PredictorHub.clear_cache()
+        model = PredictorHub.get_predictor("tt_svd", train_samples=table, fleet=fleet)
+        vessel = fleet["vessels"][0]
+        route = vessel["default_route"]
+
+        # Time single inference
+        t0 = time.perf_counter()
+        for _ in range(100):
+            tonnes = model.fuel_consumption_tonnes(vessel, fleet, 2026, 15.0, "vlsfo", route)
+        elapsed_ms = (time.perf_counter() - t0) / 100 * 1000.0
+
+        assert tonnes > 0.0
+        assert elapsed_ms < 1.0, f"TT-SVD inference time {elapsed_ms:.4f} ms exceeded 1 ms limit"
+
+    def test_get_predictor_qnn_residual(self, fleet, table):
+        PredictorHub.clear_cache()
+        model = PredictorHub.get_predictor("qnn_residual", train_samples=table, fleet=fleet)
+        vessel = fleet["vessels"][0]
+        tonnes = model.fuel_consumption_tonnes(vessel, fleet, 2026, 15.0, "vlsfo", vessel["default_route"])
+        assert tonnes > 0.0
+
+    def test_caching_behavior(self, fleet, table):
+        PredictorHub.clear_cache()
+        m1 = PredictorHub.get_predictor("tt_svd", train_samples=table, fleet=fleet)
+        m2 = PredictorHub.get_predictor("tt_svd")
+        assert m1 is m2
+
+    def test_unknown_model_raises_value_error(self, fleet):
+        with pytest.raises(ValueError):
+            PredictorHub.get_predictor("nonexistent_model", fleet=fleet)
+

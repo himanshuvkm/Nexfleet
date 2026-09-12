@@ -281,9 +281,9 @@ def main():
         "qiea": qiea_result,
         "search_attribution": attribution,
     }
-    with open(json_path, "w") as f:
+    with open(json_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2)
-    with open(md_path, "w") as f:
+    with open(md_path, "w", encoding="utf-8") as f:
         f.write(f"# GA vs QIEA benchmark ({payload['generated_at']})\n\n")
         f.write(f"Price grid: {BENCHMARK_PRICE_GRID}\n\n")
         f.write(f"Sweep settings: {BENCHMARK_SWEEP_KWARGS}\n\n")

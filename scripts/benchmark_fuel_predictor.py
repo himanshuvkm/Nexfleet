@@ -31,6 +31,7 @@ from nexfleet.optimization.fuel_predictors import (
     FeatureEncoder,
     LightGbmResidualFuelModel,
     MlpResidualFuelModel,
+    QuantumInspiredNeuralResidualModel,
     TensorTrainResidualFuelModel,
     mape,
     r_squared,
@@ -48,6 +49,7 @@ _LEARNED_ARMS: tuple[tuple[str, type], ...] = (
     ("lightgbm", LightGbmResidualFuelModel),
     ("mlp", MlpResidualFuelModel),
     ("tensor_train", TensorTrainResidualFuelModel),
+    ("qnn_residual", QuantumInspiredNeuralResidualModel),
 )
 ARMS: tuple[str, ...] = ("physics",) + tuple(name for name, _ in _LEARNED_ARMS)
 
@@ -121,6 +123,8 @@ def to_markdown_table(result: dict) -> str:
         "lightgbm": "LightGBM",
         "mlp": "MLP",
         "tensor_train": "Tensor-train residual",
+        "tt_svd": "Tensor-train residual",
+        "qnn_residual": "Quantum-inspired neural residual (QNN/QEPS)",
     }
     lines = [
         "| Arm | Mean MAPE (%) | Best fold MAPE (%) | Worst fold MAPE (%) | Mean R² | Fit time (s, total over folds) |",
@@ -179,9 +183,9 @@ def main() -> None:
         "best_arm_mape_percent": best_mape,
         "best_arm_improvement_percentage_points": round(physics_mape - best_mape, 3),
     }
-    with open(json_path, "w") as f:
+    with open(json_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2)
-    with open(md_path, "w") as f:
+    with open(md_path, "w", encoding="utf-8") as f:
         f.write(f"# Fuel-consumption prediction benchmark ({payload['generated_at']})\n\n")
         f.write(payload["provenance_note"] + "\n\n")
         f.write(
@@ -189,7 +193,14 @@ def main() -> None:
             f"(seed={result['telemetry_seed']}).\n\n"
         )
         f.write(table + "\n\n")
-        arm_labels = {"physics": "Physics-only", "lightgbm": "LightGBM", "mlp": "MLP", "tensor_train": "Tensor-train residual"}
+        arm_labels = {
+            "physics": "Physics-only",
+            "lightgbm": "LightGBM",
+            "mlp": "MLP",
+            "tensor_train": "Tensor-train residual",
+            "tt_svd": "Tensor-train residual",
+            "qnn_residual": "Quantum-inspired neural residual",
+        }
         f.write(
             f"**{arm_labels[best_arm]}** wins on mean MAPE "
             f"({best_mape:.3f}% vs. physics-only's {physics_mape:.3f}%, a "

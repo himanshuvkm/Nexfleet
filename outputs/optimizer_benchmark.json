@@ -1,6 +1,6 @@
 {
   "document_version": "optimizer-benchmark-v2",
-  "generated_at": "2026-09-02T11:58:23Z",
+  "generated_at": "2026-09-12T15:55:52Z",
   "status": "ILLUSTRATIVE",
   "provenance_note": "GA vs QIEA head-to-head at matched settings, plus an ablation isolating what the quantum-inspired search itself contributes. Every figure here is measured by this script on this fleet at the settings recorded alongside it -- prototype-grade, not a production-settings result, and the cost margin between the two solvers is small enough that the ordering should be re-confirmed at production settings before being relied on. Benchmark settings sit deliberately between build_demo_data.py's --fast and its production defaults.",
   "note": "Decision-support benchmark only -- does not affect outputs/demo_data.json or frontend/public/demo_data.json, which are unchanged by running this.",
@@ -32,9 +32,9 @@
   },
   "ga": {
     "optimizer": "ga",
-    "sweep_seconds": 9.2,
-    "exposure_seconds": 25.86,
-    "total_seconds": 35.05,
+    "sweep_seconds": 27.86,
+    "exposure_seconds": 78.77,
+    "total_seconds": 106.62,
     "n_grid_points": 11,
     "n_switching_points": 27,
     "n_envelope_corrected": 0,
@@ -52,9 +52,9 @@
   },
   "qiea": {
     "optimizer": "qiea",
-    "sweep_seconds": 30.95,
-    "exposure_seconds": 52.79,
-    "total_seconds": 83.74,
+    "sweep_seconds": 97.96,
+    "exposure_seconds": 148.5,
+    "total_seconds": 246.46,
     "n_grid_points": 11,
     "n_switching_points": 55,
     "n_envelope_corrected": 8,
