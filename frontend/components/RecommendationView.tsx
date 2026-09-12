@@ -4,10 +4,17 @@ import { PageHeader } from './PageHeader';
 import React, { FormEvent, useState } from 'react';
 import { CheckCircleIcon, InfoIcon } from '@phosphor-icons/react';
 import { DataGate } from '@/components/DataGate';
-import { ComparableAlternative, ComparableRecommendations, DemoData } from '@/types/demo';
+import {
+  ComparableAlternative,
+  ComparableRecommendations,
+  DemoData,
+  FuelOption,
+  LiveOptimizerResult,
+} from '@/types/demo';
 import { abatementLadder } from '@/lib/planAnalytics';
 import { FrontierChart, Legend, seriesColor } from '@/components/Charts';
 import { ktCO2e, kTonnes, pct, usdM } from '@/lib/format';
+import { FUEL_NAMES, fuelName, routeName } from '@/lib/labels';
 
 const PLAN_COLORS: Record<ComparableAlternative['id'], string> = {
   cheapest: seriesColor(0),
@@ -251,6 +258,611 @@ function TradeOffDeck({ recommendations, metadata }: { recommendations: Comparab
   );
 }
 
+const DEFAULT_ENGINE_FUEL_MATRIX: Record<string, string[]> = {
+  conventional_hfo_scrubber: ['hfo_scrubber', 'vlsfo', 'mgo', 'b30_blend'],
+  dual_fuel_lng: ['vlsfo', 'mgo', 'lng', 'b30_blend'],
+  dual_fuel_methanol: ['vlsfo', 'mgo', 'methanol', 'b30_blend'],
+  dual_fuel_ammonia: ['vlsfo', 'mgo', 'ammonia', 'b30_blend'],
+  dual_fuel_hydrogen: ['vlsfo', 'mgo', 'hydrogen', 'b30_blend'],
+};
+
+const liveApiBaseUrl = (
+  process.env.NEXT_PUBLIC_API_BASE_URL ??
+  process.env.NEXT_PUBLIC_LIVE_API_BASE_URL ??
+  'http://localhost:8000'
+).replace(/\/$/, '');
+
+function LiveOptimizationSection({ data }: { data: DemoData }) {
+  const [carbonPrice, setCarbonPrice] = useState('175');
+  const [demandMultiplier, setDemandMultiplier] = useState('1.0');
+  const [populationSize, setPopulationSize] = useState('30');
+  const [generations, setGenerations] = useState('30');
+  const [seed, setSeed] = useState('0');
+
+  const vessels = data.fleet?.vessels ?? [];
+  const [selectedVesselId, setSelectedVesselId] = useState<string>(vessels[0]?.vessel_id ?? 'A1');
+
+  const matrix = (data.fleet?.engine_fuel_compatibility?.matrix ?? DEFAULT_ENGINE_FUEL_MATRIX) as Record<string, string[]>;
+  const currentVessel = vessels.find(v => v.vessel_id === selectedVesselId) ?? vessels[0];
+  const engineType = currentVessel?.engine_type ?? 'conventional_hfo_scrubber';
+  const compatibleFuelIds = matrix[engineType] ?? ['vlsfo'];
+
+  const allFuelKeys = Object.keys(data.fleet?.fuel_properties?.fuels ?? FUEL_NAMES);
+  const [selectedFuelId, setSelectedFuelId] = useState<string>(compatibleFuelIds[0] ?? 'vlsfo');
+  const [fuelNotice, setFuelNotice] = useState<string | null>(null);
+
+  const [runningAction, setRunningAction] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [liveResult, setLiveResult] = useState<LiveOptimizerResult | null>(null);
+  const [estimateData, setEstimateData] = useState<any | null>(null);
+
+  // Compute fuel options with compatibility flags
+  const fuelOptions: FuelOption[] = allFuelKeys.map(fuelId => {
+    const isCompatible = compatibleFuelIds.includes(fuelId);
+    return {
+      id: fuelId,
+      label: fuelName(fuelId),
+      compatible: isCompatible,
+      reason: isCompatible ? undefined : 'Not compatible with engine',
+    };
+  });
+
+  const hasCompatibleFuel = fuelOptions.some(f => f.compatible);
+
+  const handleVesselChange = (newVesselId: string) => {
+    setSelectedVesselId(newVesselId);
+    const newVessel = vessels.find(v => v.vessel_id === newVesselId);
+    const newEngine = newVessel?.engine_type ?? 'conventional_hfo_scrubber';
+    const newCompatibles = matrix[newEngine] ?? ['vlsfo'];
+
+    if (!newCompatibles.includes(selectedFuelId)) {
+      const fallbackFuel = newCompatibles[0] ?? 'vlsfo';
+      setSelectedFuelId(fallbackFuel);
+      setFuelNotice('Fuel changed because the previous fuel is not compatible with this vessel.');
+    } else {
+      setFuelNotice(null);
+    }
+  };
+
+  const handleRunOptimize = async (optChoice: 'ga' | 'qiea' | 'both') => {
+    setRunningAction(optChoice);
+    setApiError(null);
+    setStatusMessage(
+      optChoice === 'both'
+        ? 'Solving sequentially with Classical GA and Quantum QIEA on local backend...'
+        : `Running live ${optChoice.toUpperCase()} optimization on local backend...`
+    );
+    setEstimateData(null);
+
+    try {
+      const response = await fetch(`${liveApiBaseUrl}/api/optimize`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          carbon_price_usd_per_tco2e: Number(carbonPrice),
+          cargo_demand_multiplier: Number(demandMultiplier),
+          run_both: optChoice === 'both',
+          optimizer: optChoice,
+          population_size: Number(populationSize),
+          generations: Number(generations),
+          seed: Number(seed),
+          vessel_id: selectedVesselId,
+          fuel_id: selectedFuelId,
+        }),
+      });
+
+      if (response.ok) {
+        const payload = (await response.json()) as LiveOptimizerResult;
+        setLiveResult(payload);
+        setStatusMessage(
+          optChoice === 'both'
+            ? 'Both GA and QIEA optimization completed. Comparative metrics rendered below.'
+            : `${optChoice.toUpperCase()} optimization completed successfully.`
+        );
+      } else {
+        const errPayload = await response.json().catch(() => ({}));
+        const detail = errPayload.detail || errPayload.message;
+        if (typeof detail === 'string' && detail.includes('not compatible')) {
+          setApiError('This fuel is not compatible with the selected vessel.');
+        } else if (typeof detail === 'string') {
+          setApiError(detail);
+        } else if (Array.isArray(detail)) {
+          setApiError(detail.map((d: any) => d.msg || d.message).join(', '));
+        } else {
+          setApiError(`Request failed with status ${response.status}`);
+        }
+      }
+    } catch {
+      setApiError(
+        `Solver service unreachable at ${liveApiBaseUrl}. Start the Python API with: python -m uvicorn nexfleet.api.server:app --port 8000`
+      );
+    } finally {
+      setRunningAction(null);
+    }
+  };
+
+  const handleRunEstimate = async () => {
+    setRunningAction('estimate');
+    setApiError(null);
+    setStatusMessage('Computing instant preliminary baseline estimate...');
+
+    try {
+      const response = await fetch(`${liveApiBaseUrl}/api/estimate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          carbon_price_usd_per_tco2e: Number(carbonPrice),
+          cargo_demand_multiplier: Number(demandMultiplier),
+          vessel_id: selectedVesselId,
+          fuel_id: selectedFuelId,
+        }),
+      });
+
+      if (response.ok) {
+        const payload = await response.json();
+        setEstimateData(payload);
+        setStatusMessage('Preliminary estimate ready.');
+      } else {
+        const errPayload = await response.json().catch(() => ({}));
+        const detail = errPayload.detail;
+        if (typeof detail === 'string' && detail.includes('not compatible')) {
+          setApiError('This fuel is not compatible with the selected vessel.');
+        } else {
+          setApiError(typeof detail === 'string' ? detail : `Estimate failed with status ${response.status}`);
+        }
+      }
+    } catch {
+      setApiError(
+        `Solver service unreachable at ${liveApiBaseUrl}. Start the Python API with: python -m uvicorn nexfleet.api.server:app --port 8000`
+      );
+    } finally {
+      setRunningAction(null);
+    }
+  };
+
+  const isBusy = runningAction !== null;
+  const isSubmitDisabled = isBusy || !hasCompatibleFuel;
+
+  return (
+    <section className="metric-card mb-6 border border-[var(--accent)]/30" aria-label="Live GA & QIEA Optimization">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] pb-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center rounded-full bg-[var(--action-bg)] px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-[var(--action-text)]">
+              Live Interactive
+            </span>
+            <h2 className="text-base font-bold text-[var(--text-primary)]">
+              Run Live GA & QIEA Optimization
+            </h2>
+          </div>
+          <p className="mt-1 text-xs text-[var(--text-secondary)]">
+            Run real-time evolutionary search on local Python backend. Compare classical Genetic Algorithm vs Quantum-Inspired Evolutionary Algorithm under custom constraints.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 text-[10px] font-mono">
+          <span className="rounded bg-[var(--surface-sunken)] px-2 py-1 border border-[var(--border)] text-[var(--text-tertiary)]">
+            Synthetic Catalog Data
+          </span>
+          <span className="rounded bg-[var(--surface-sunken)] px-2 py-1 border border-[var(--border)] text-[var(--accent)] font-semibold">
+            GA/QIEA on local Python backend
+          </span>
+        </div>
+      </div>
+
+      {/* Interactive Controls Form */}
+      <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {/* Vessel Selector */}
+        <div>
+          <label className="text-xs font-semibold text-[var(--text-secondary)]">
+            Selected Vessel
+          </label>
+          <select
+            value={selectedVesselId}
+            onChange={e => handleVesselChange(e.target.value)}
+            disabled={isBusy}
+            className="mt-1 block w-full rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-mono text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
+          >
+            {vessels.map(v => (
+              <option key={v.vessel_id} value={v.vessel_id}>
+                {v.vessel_id} — Band {v.band} ({routeName(v.default_route)})
+              </option>
+            ))}
+          </select>
+          <div className="mt-1.5 flex items-center justify-between text-[11px]">
+            <span className="text-[var(--text-tertiary)]">Engine Type:</span>
+            <span className="font-mono font-medium text-[var(--accent)]">
+              {engineType.replaceAll('_', ' ')}
+            </span>
+          </div>
+        </div>
+
+        {/* Fuel Selector with Compatibility Handling */}
+        <div>
+          <label className="text-xs font-semibold text-[var(--text-secondary)]">
+            Candidate Fuel Choice
+          </label>
+          <select
+            value={selectedFuelId}
+            onChange={e => setSelectedFuelId(e.target.value)}
+            disabled={isSubmitDisabled}
+            className="mt-1 block w-full rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-mono text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
+          >
+            {fuelOptions.map(opt => (
+              <option
+                key={opt.id}
+                value={opt.id}
+                disabled={!opt.compatible}
+                className={!opt.compatible ? 'text-gray-500 opacity-50' : 'text-[var(--text-primary)]'}
+              >
+                {opt.label} {!opt.compatible ? '— Not compatible' : ''}
+              </option>
+            ))}
+          </select>
+          <div className="mt-1.5 text-[11px]">
+            {!hasCompatibleFuel ? (
+              <span className="text-[var(--warning)] font-semibold">No compatible fuel available for this vessel.</span>
+            ) : (
+              <span className="text-[var(--text-tertiary)]">
+                {compatibleFuelIds.length} compatible fuel{compatibleFuelIds.length === 1 ? '' : 's'} available
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Economic Constraints */}
+        <div>
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label className="text-xs font-semibold text-[var(--text-secondary)]">
+                Carbon Price ($/t)
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="5"
+                value={carbonPrice}
+                onChange={e => setCarbonPrice(e.target.value)}
+                disabled={isBusy}
+                className="mt-1 block w-full rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-mono text-[var(--text-primary)]"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="text-xs font-semibold text-[var(--text-secondary)]">
+                Cargo Demand
+              </label>
+              <input
+                type="number"
+                min="0.1"
+                step="0.1"
+                value={demandMultiplier}
+                onChange={e => setDemandMultiplier(e.target.value)}
+                disabled={isBusy}
+                className="mt-1 block w-full rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-mono text-[var(--text-primary)]"
+              />
+            </div>
+          </div>
+          <div className="mt-1.5 text-[11px] text-[var(--text-tertiary)]">
+            Effective carbon price & demand scale
+          </div>
+        </div>
+
+        {/* Hyperparameters */}
+        <div>
+          <div className="grid grid-cols-3 gap-1.5">
+            <div>
+              <label className="text-[10px] font-semibold text-[var(--text-secondary)]">Pop Size</label>
+              <input
+                type="number"
+                min="5"
+                max="200"
+                value={populationSize}
+                onChange={e => setPopulationSize(e.target.value)}
+                disabled={isBusy}
+                className="mt-1 block w-full rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] px-2 py-1.5 text-xs font-mono text-[var(--text-primary)]"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold text-[var(--text-secondary)]">Generations</label>
+              <input
+                type="number"
+                min="1"
+                max="200"
+                value={generations}
+                onChange={e => setGenerations(e.target.value)}
+                disabled={isBusy}
+                className="mt-1 block w-full rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] px-2 py-1.5 text-xs font-mono text-[var(--text-primary)]"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-semibold text-[var(--text-secondary)]">Seed</label>
+              <input
+                type="number"
+                value={seed}
+                onChange={e => setSeed(e.target.value)}
+                disabled={isBusy}
+                className="mt-1 block w-full rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] px-2 py-1.5 text-xs font-mono text-[var(--text-primary)]"
+              />
+            </div>
+          </div>
+          <div className="mt-1.5 text-[11px] text-[var(--text-tertiary)]">
+            Matched hyperparameters for fair test
+          </div>
+        </div>
+      </div>
+
+      {/* Fuel Switch Notification */}
+      {fuelNotice && (
+        <div className="mt-3 rounded-lg border border-[var(--warning)]/30 bg-[var(--warning)]/10 px-3 py-2 text-xs font-medium text-[var(--warning)] flex items-center justify-between">
+          <span>{fuelNotice}</span>
+          <button
+            onClick={() => setFuelNotice(null)}
+            className="text-[10px] uppercase tracking-wider font-bold opacity-70 hover:opacity-100"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* API / Validation Error Banner */}
+      {apiError && (
+        <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs font-medium text-red-400">
+          <strong>Notice:</strong> {apiError}
+        </div>
+      )}
+
+      {/* Action Buttons Bar */}
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={handleRunEstimate}
+            disabled={isSubmitDisabled}
+            className="rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-sunken)] disabled:opacity-50"
+          >
+            {runningAction === 'estimate' ? 'Estimating...' : 'Run Estimate'}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleRunOptimize('ga')}
+            disabled={isSubmitDisabled}
+            className="rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] px-3.5 py-2 text-xs font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-sunken)] disabled:opacity-50"
+          >
+            {runningAction === 'ga' ? 'Running GA...' : 'Run GA'}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleRunOptimize('qiea')}
+            disabled={isSubmitDisabled}
+            className="rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] px-3.5 py-2 text-xs font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-sunken)] disabled:opacity-50"
+          >
+            {runningAction === 'qiea' ? 'Running QIEA...' : 'Run QIEA'}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleRunOptimize('both')}
+            disabled={isSubmitDisabled}
+            className="rounded-md bg-[var(--action-bg)] px-4 py-2 text-xs font-bold text-[var(--action-text)] transition-colors hover:bg-[var(--action-bg-hover)] disabled:opacity-50"
+          >
+            {runningAction === 'both' ? 'Comparing Both (GA + QIEA)...' : 'Compare Both'}
+          </button>
+        </div>
+
+        {statusMessage && (
+          <span className="font-mono text-xs text-[var(--text-secondary)]">
+            {isBusy ? (
+              <span className="inline-block animate-pulse text-[var(--accent)] font-semibold">
+                ● {statusMessage}
+              </span>
+            ) : (
+              <span>✓ {statusMessage}</span>
+            )}
+          </span>
+        )}
+      </div>
+
+      {/* Estimate Result Pill */}
+      {estimateData && (
+        <div className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--surface-sunken)] p-3 text-xs font-mono flex flex-wrap items-center justify-between gap-2">
+          <span className="text-[var(--text-secondary)]">
+            <strong>Preliminary Estimate:</strong> Total Cost{' '}
+            <strong className="text-[var(--text-primary)]">{usdM(estimateData.estimated_total_cost_usd, 2)}</strong>
+          </span>
+          <span className="text-[var(--text-secondary)]">
+            Lifecycle GHG: <strong className="text-[var(--text-primary)]">{ktCO2e(estimateData.estimated_lifecycle_emissions_tco2e, 0)}</strong>
+          </span>
+          <span className="text-[var(--text-secondary)]">
+            Fuel Mass: <strong className="text-[var(--text-primary)]">{kTonnes(estimateData.estimated_fuel_tonnes)}</strong>
+          </span>
+          <span className="text-[var(--text-secondary)]">
+            Compliance: <strong className="text-[var(--text-primary)]">{signedMoney(estimateData.estimated_compliance_cost_usd)}</strong>
+          </span>
+        </div>
+      )}
+
+      {/* Live Solvers Comparison Results */}
+      {liveResult && (
+        <div className="mt-6 space-y-4 border-t border-[var(--border)] pt-5">
+          {/* Winner Headline Banner */}
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-sunken)] p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs uppercase font-bold tracking-wide text-[var(--text-tertiary)]">
+                  Live Solution Outcome:
+                </span>
+                <span
+                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                    liveResult.best_optimizer === 'ga'
+                      ? 'bg-blue-500/20 text-blue-400'
+                      : liveResult.best_optimizer === 'qiea'
+                      ? 'bg-purple-500/20 text-purple-400'
+                      : 'bg-emerald-500/20 text-emerald-400'
+                  }`}
+                >
+                  {liveResult.best_optimizer === 'ga'
+                    ? 'Classical GA Won'
+                    : liveResult.best_optimizer === 'qiea'
+                    ? 'Quantum QIEA Won'
+                    : 'Both Solvers Equivalent'}
+                </span>
+                <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
+                  {liveResult.best_plan.feasible ? '100% Feasible' : 'Infeasible Demand Shortfall'}
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                {liveResult.comparison.winner_reason}
+              </p>
+            </div>
+            <div className="text-right font-mono">
+              <div className="text-xs text-[var(--text-tertiary)]">Best Total Cost</div>
+              <div className="text-xl font-bold text-[var(--text-primary)]">
+                {usdM(liveResult.best_plan.total_cost_usd, 2)}
+              </div>
+            </div>
+          </div>
+
+          {/* Comparative Metrics Table */}
+          <div className="overflow-x-auto rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] p-3">
+            <table className="w-full text-left font-mono text-xs">
+              <thead>
+                <tr className="border-b border-[var(--border)] text-[var(--text-tertiary)]">
+                  <th className="py-2 pr-4">Metric</th>
+                  <th className="py-2 px-4">Classical GA</th>
+                  <th className="py-2 px-4">Quantum QIEA</th>
+                  <th className="py-2 pl-4 text-right">Delta / Evaluation</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border)]">
+                <tr>
+                  <td className="py-2 pr-4 font-sans font-medium text-[var(--text-primary)]">Five-Year Cost</td>
+                  <td className="py-2 px-4 text-[var(--text-secondary)]">
+                    {liveResult.ga_result.available ? usdM(liveResult.ga_result.total_cost_usd, 2) : 'N/A'}
+                  </td>
+                  <td className="py-2 px-4 text-[var(--text-secondary)]">
+                    {liveResult.qiea_result.available ? usdM(liveResult.qiea_result.total_cost_usd, 2) : 'N/A'}
+                  </td>
+                  <td className="py-2 pl-4 text-right font-bold text-[var(--text-primary)]">
+                    {liveResult.ga_result.available && liveResult.qiea_result.available
+                      ? `${liveResult.comparison.cost_difference_usd < 0 ? 'GA −' : 'QIEA −'}${usdM(Math.abs(liveResult.comparison.cost_difference_usd), 2)} (${liveResult.comparison.cost_difference_percent}%)`
+                      : 'N/A'}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2 pr-4 font-sans font-medium text-[var(--text-primary)]">Runtime</td>
+                  <td className="py-2 px-4 text-[var(--text-secondary)]">
+                    {liveResult.ga_result.available ? `${liveResult.ga_result.runtime_seconds}s` : 'N/A'}
+                  </td>
+                  <td className="py-2 px-4 text-[var(--text-secondary)]">
+                    {liveResult.qiea_result.available ? `${liveResult.qiea_result.runtime_seconds}s` : 'N/A'}
+                  </td>
+                  <td className="py-2 pl-4 text-right font-bold text-[var(--text-primary)]">
+                    {liveResult.ga_result.available && liveResult.qiea_result.available
+                      ? `${Math.abs(liveResult.comparison.runtime_difference_seconds).toFixed(2)}s diff`
+                      : 'N/A'}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2 pr-4 font-sans font-medium text-[var(--text-primary)]">Lifecycle Emissions</td>
+                  <td className="py-2 px-4 text-[var(--text-secondary)]">
+                    {liveResult.ga_result.available ? ktCO2e(liveResult.ga_result.lifecycle_emissions_tco2e, 0) : 'N/A'}
+                  </td>
+                  <td className="py-2 px-4 text-[var(--text-secondary)]">
+                    {liveResult.qiea_result.available ? ktCO2e(liveResult.qiea_result.lifecycle_emissions_tco2e, 0) : 'N/A'}
+                  </td>
+                  <td className="py-2 pl-4 text-right font-bold text-[var(--text-primary)]">
+                    {liveResult.ga_result.available && liveResult.qiea_result.available
+                      ? `${ktCO2e(Math.abs(liveResult.comparison.emissions_difference_tco2e), 0)} delta`
+                      : 'N/A'}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2 pr-4 font-sans font-medium text-[var(--text-primary)]">Compliance Bill</td>
+                  <td className="py-2 px-4 text-[var(--text-secondary)]">
+                    {liveResult.ga_result.available ? signedMoney(liveResult.ga_result.compliance_cost_usd) : 'N/A'}
+                  </td>
+                  <td className="py-2 px-4 text-[var(--text-secondary)]">
+                    {liveResult.qiea_result.available ? signedMoney(liveResult.qiea_result.compliance_cost_usd) : 'N/A'}
+                  </td>
+                  <td className="py-2 pl-4 text-right font-bold text-[var(--text-primary)]">
+                    {signedMoney(liveResult.best_plan.compliance_cost_usd)}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2 pr-4 font-sans font-medium text-[var(--text-primary)]">Cargo Fulfillment</td>
+                  <td className="py-2 px-4 text-[var(--text-secondary)]">
+                    {liveResult.ga_result.available ? `${liveResult.ga_result.cargo_fulfillment_percent}%` : 'N/A'}
+                  </td>
+                  <td className="py-2 px-4 text-[var(--text-secondary)]">
+                    {liveResult.qiea_result.available ? `${liveResult.qiea_result.cargo_fulfillment_percent}%` : 'N/A'}
+                  </td>
+                  <td className="py-2 pl-4 text-right font-bold text-emerald-400">
+                    {liveResult.best_plan.cargo_fulfillment_percent}%
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* "What Changed?" vs Static $0/t Baseline Card */}
+          {liveResult.baseline_comparison && (
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-sunken)] p-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h3 className="text-sm font-bold uppercase tracking-wide text-[var(--text-primary)]">
+                  What Changed vs. $0/t Status-Quo Baseline (BAU)?
+                </h3>
+                <span className="font-mono text-xs font-semibold text-[var(--success)]">
+                  Saved ${usdM(liveResult.baseline_comparison.cost_savings_usd, 1)} ({liveResult.baseline_comparison.cost_savings_percent}%) vs BAU
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                {liveResult.baseline_comparison.what_changed.summary} Lifecycle emissions cut by {ktCO2e(liveResult.baseline_comparison.emissions_reduction_tco2e, 0)}.
+              </p>
+
+              <div className="mt-3 grid grid-cols-2 sm:grid-cols-5 gap-2 font-mono text-center text-xs">
+                <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] p-2">
+                  <div className="text-[10px] text-[var(--text-tertiary)]">Fuel Switches</div>
+                  <div className="mt-0.5 text-sm font-bold text-[var(--text-primary)]">
+                    {liveResult.baseline_comparison.what_changed.fuel_changes}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] p-2">
+                  <div className="text-[10px] text-[var(--text-tertiary)]">Speed Changes</div>
+                  <div className="mt-0.5 text-sm font-bold text-[var(--text-primary)]">
+                    {liveResult.baseline_comparison.what_changed.speed_changes}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] p-2">
+                  <div className="text-[10px] text-[var(--text-tertiary)]">Route Shifts</div>
+                  <div className="mt-0.5 text-sm font-bold text-[var(--text-primary)]">
+                    {liveResult.baseline_comparison.what_changed.route_changes}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] p-2">
+                  <div className="text-[10px] text-[var(--text-tertiary)]">Shore Power</div>
+                  <div className="mt-0.5 text-sm font-bold text-[var(--text-primary)]">
+                    {liveResult.baseline_comparison.what_changed.shore_power_changes}
+                  </div>
+                </div>
+                <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] p-2">
+                  <div className="text-[10px] text-[var(--text-tertiary)]">Pooling Opt-ins</div>
+                  <div className="mt-0.5 text-sm font-bold text-[var(--text-primary)]">
+                    {liveResult.baseline_comparison.what_changed.pooling_changes}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Provenance note */}
+          <p className="text-[11px] leading-relaxed text-[var(--text-tertiary)]">
+            <strong>Provenance:</strong> Live optimizer result calculated dynamically on local Python backend with seed {liveResult.request.seed}. The static demo cards below are precomputed catalog reference data.
+          </p>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function ScorecardSection({ data }: { data: DemoData }) {
   const baseline = data.baseline;
   const pareto = data.comparable_recommendations;
@@ -449,6 +1061,7 @@ function Recommendations({ data }: { data: DemoData }) {
     <>
       <TradeOffDeck recommendations={recommendations} metadata={data.metadata} />
       <div className="page-shell pb-6 pt-2">
+        <LiveOptimizationSection data={data} />
         <ScorecardSection data={data} />
         <SavingsWaterfallSection data={data} />
         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-sunken)] p-4 flex flex-col sm:flex-row items-center justify-between gap-4">

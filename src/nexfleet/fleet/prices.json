@@ -46,6 +46,20 @@
       "status": "ESTIMATE",
       "source": "Green e-methanol estimate from secondary reporting, no single spot-market quote the way the other five fuels have one — https://www.hellenicshippingnews.com/switch-to-green-e-methanol-would-raise-bunker-costs-by-340/",
       "notes": "Grey (fossil) methanol trades far cheaper (~$669/mt fuel-oil-equivalent at Rotterdam, per the same source family) but does not satisfy FuelEU/NZF's lifecycle-carbon-intensity intent; the green figure is used here as the fuel option a compliance-motivated dual-fuel-methanol vessel would actually burn."
+    },
+    "ammonia": {
+      "price_usd_per_tonne": 1250,
+      "port": null,
+      "retrieval_date": "2026-08-30",
+      "status": "ESTIMATE",
+      "source": "Green ammonia estimate"
+    },
+    "hydrogen": {
+      "price_usd_per_tonne": 2500,
+      "port": null,
+      "retrieval_date": "2026-08-30",
+      "status": "ESTIMATE",
+      "source": "Green hydrogen estimate"
     }
   },
   "carbon_allowances": {

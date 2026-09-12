@@ -421,3 +421,78 @@ export type OptimizerBenchmark =
       qiea: OptimizerRun;
       search_attribution: SearchAttribution;
     };
+
+export type FuelOption = {
+  id: string;
+  label: string;
+  compatible: boolean;
+  reason?: string;
+};
+
+export interface LiveOptimizerResult {
+  status: string;
+  data_mode: string;
+  request: Record<string, any>;
+  best_optimizer: 'ga' | 'qiea' | 'equivalent';
+  best_plan: {
+    total_cost_usd: number;
+    fuel_tonnes: number;
+    lifecycle_emissions_tco2e: number;
+    compliance_cost_usd: number;
+    cargo_fulfillment_percent: number;
+    feasible: boolean;
+    configuration: VesselYearGene[];
+  };
+  ga_result: {
+    available: boolean;
+    runtime_seconds: number;
+    total_cost_usd: number;
+    fuel_tonnes: number;
+    lifecycle_emissions_tco2e: number;
+    compliance_cost_usd: number;
+    cargo_fulfillment_percent: number;
+    feasible: boolean;
+    generations_run: number;
+    configuration: VesselYearGene[];
+    error?: string | null;
+  };
+  qiea_result: {
+    available: boolean;
+    runtime_seconds: number;
+    total_cost_usd: number;
+    fuel_tonnes: number;
+    lifecycle_emissions_tco2e: number;
+    compliance_cost_usd: number;
+    cargo_fulfillment_percent: number;
+    feasible: boolean;
+    generations_run: number;
+    configuration: VesselYearGene[];
+    error?: string | null;
+  };
+  comparison: {
+    cost_difference_usd: number;
+    cost_difference_percent: number;
+    emissions_difference_tco2e: number;
+    runtime_difference_seconds: number;
+    winner_reason: string;
+  };
+  baseline_comparison: {
+    baseline_total_cost_usd: number;
+    baseline_fuel_tonnes: number;
+    baseline_lifecycle_emissions_tco2e: number;
+    baseline_compliance_cost_usd: number;
+    cost_savings_usd: number;
+    cost_savings_percent: number;
+    emissions_reduction_tco2e: number;
+    what_changed: {
+      fuel_changes: number;
+      speed_changes: number;
+      route_changes: number;
+      shore_power_changes: number;
+      pooling_changes: number;
+      summary: string;
+    };
+  };
+  validation_messages: string[];
+}
+

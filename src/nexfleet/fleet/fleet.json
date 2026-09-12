@@ -54,6 +54,8 @@
   "routes": {
     "india_northeurope": {
       "band": "A",
+      "distance_nm": 85000,
+      "min_capacity_dwt_required": 72000,
       "annual_transit_distance_nm": 85000,
       "annual_port_service_days": 28,
       "payload_utilization_fraction": 0.7,
@@ -67,6 +69,8 @@
     },
     "india_mediterranean": {
       "band": "A",
+      "distance_nm": 70000,
+      "min_capacity_dwt_required": 72000,
       "annual_transit_distance_nm": 70000,
       "annual_port_service_days": 24,
       "payload_utilization_fraction": 0.7,
@@ -80,6 +84,8 @@
     },
     "india_gulf": {
       "band": "B",
+      "distance_nm": 45000,
+      "min_capacity_dwt_required": 35000,
       "annual_transit_distance_nm": 45000,
       "annual_port_service_days": 18,
       "payload_utilization_fraction": 0.7,
@@ -91,6 +97,8 @@
     },
     "india_seasia": {
       "band": "B",
+      "distance_nm": 55000,
+      "min_capacity_dwt_required": 35000,
       "annual_transit_distance_nm": 55000,
       "annual_port_service_days": 22,
       "payload_utilization_fraction": 0.7,
@@ -102,6 +110,8 @@
     },
     "coastal_westcoast": {
       "band": "C",
+      "distance_nm": 20000,
+      "min_capacity_dwt_required": 5000,
       "annual_transit_distance_nm": 20000,
       "annual_port_service_days": 10,
       "payload_utilization_fraction": 0.7,
@@ -113,6 +123,8 @@
     },
     "coastal_eastcoast": {
       "band": "C",
+      "distance_nm": 18000,
+      "min_capacity_dwt_required": 5000,
       "annual_transit_distance_nm": 18000,
       "annual_port_service_days": 10,
       "payload_utilization_fraction": 0.7,
