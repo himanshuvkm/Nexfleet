@@ -89,6 +89,8 @@ def vessel_year_facts(
     fleet: dict[str, Any],
     regulations: dict[str, Any],
     fuel_model: FuelModel,
+    fouling_age_days: float | None = None,
+    sea_state_index: float | None = None,
 ) -> VesselYearFacts:
     """Derive one vessel-year's physics and regulatory-applicability facts.
 
@@ -96,15 +98,40 @@ def vessel_year_facts(
     usable by anything that needs the regulation-facing numbers without also
     needing `prices.json` (e.g. the sweep's scenario-axis-position code,
     which prices nothing itself).
+
+    Accepts optional environmental degradation modifiers:
+    - `fouling_age_days`: Hull-fouling drag accumulation since drydock.
+    - `sea_state_index`: Wave and weather resistance factor (0.0 to 1.0).
     """
     menu = option_menu_for(vessel, fleet, gene.year)
     route = fleet["routes"][gene.route_id]
-    speed_knots = menu.speed_bands_knots[gene.speed_band_index]
+    if hasattr(gene, "speed_knots") and gene.speed_knots is not None:
+        speed_knots = float(gene.speed_knots)
+    else:
+        speed_knots = menu.speed_bands_knots[gene.speed_band_index]
 
     raw_tonnes = fuel_model.fuel_consumption_tonnes(vessel, fleet, gene.year, speed_knots, gene.fuel_id, gene.route_id)
-    raw_energy_mj = fuel_model.annual_energy_mj(vessel, fleet, speed_knots, gene.route_id)
+    if hasattr(fuel_model, "annual_energy_mj"):
+        raw_energy_mj = fuel_model.annual_energy_mj(vessel, fleet, speed_knots, gene.route_id)
+    else:
+        lcv = fleet["fuel_properties"]["fuels"][gene.fuel_id]["lcv_mj_per_tonne"]
+        raw_energy_mj = raw_tonnes * lcv
 
-    shore_power_elected = gene.shore_power and menu.shore_power_available
+    # Environmental degradation modifiers (hull fouling & sea state)
+    env_multiplier = 1.0
+    if fouling_age_days is not None:
+        from nexfleet.optimization.synthetic_telemetry import hull_fouling_fraction
+        env_multiplier += hull_fouling_fraction(fouling_age_days)
+    if sea_state_index is not None:
+        from nexfleet.optimization.synthetic_telemetry import sea_state_fraction
+        design_speed = fleet["vessel_class_defaults"][vessel["band"]]["design_speed_knots"]
+        env_multiplier += sea_state_fraction(sea_state_index, speed_knots, design_speed)
+
+    if env_multiplier != 1.0:
+        raw_tonnes *= env_multiplier
+        raw_energy_mj *= env_multiplier
+
+    shore_power_elected = bool(gene.shore_power and menu.shore_power_available)
     if shore_power_elected:
         berth_fraction = route["voyage_pattern"].get("eu_eea_berth_fraction", 0.0)
         reduction = fleet["shore_power_model"]["berth_fuel_reduction_fraction"]
@@ -175,7 +202,8 @@ class _SlotLocal:
 
 def _slot_local_key(gene: Any) -> tuple[Any, ...]:
     """The gene fields `_slot_local`'s output actually varies with."""
-    return (gene.vessel_id, gene.year, gene.route_id, gene.speed_band_index, gene.fuel_id, gene.shore_power)
+    speed = getattr(gene, "speed_band_index", getattr(gene, "speed_knots", None))
+    return (gene.vessel_id, gene.year, gene.route_id, speed, gene.fuel_id, gene.shore_power)
 
 
 def _slot_local(
@@ -185,9 +213,11 @@ def _slot_local(
     regulations: dict[str, Any],
     prices: dict[str, Any],
     fuel_model: FuelModel,
+    fouling_age_days: float | None = None,
+    sea_state_index: float | None = None,
 ) -> _SlotLocal:
     """One vessel-year's slot-local costs and regulation-facing figures."""
-    facts = vessel_year_facts(gene, vessel, fleet, regulations, fuel_model)
+    facts = vessel_year_facts(gene, vessel, fleet, regulations, fuel_model, fouling_age_days, sea_state_index)
     band_defaults = fleet["vessel_class_defaults"][vessel["band"]]
     fuel_price_entry = prices["fuels"][gene.fuel_id]
     label = f"{gene.vessel_id}/{gene.year}"
@@ -308,6 +338,11 @@ class ObjectiveCache:
             self._bound = bound
             self._slots = {}
         return self._slots
+
+    def clear(self) -> None:
+        """Explicitly clear the cached slots."""
+        self._bound = None
+        self._slots = {}
 
 
 @dataclass(frozen=True)
