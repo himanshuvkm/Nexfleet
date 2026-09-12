@@ -26,3 +26,6 @@ docs/
 # Editors
 .vscode/
 .idea/
+
+# Agents & Customization Skills
+.agents/
