@@ -140,6 +140,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field, replace
 from typing import Any
 
+from nexfleet.fleet.baseline import compute_cii_rating, _slot_local
 from nexfleet.fleet.model import option_menu_for
 from nexfleet.optimization.fuel_model import FuelModel, PhysicsFuelModel
 from nexfleet.optimization.genome import DECISION_FIELDS, Genome, VesselYearGene, field_domains
@@ -1050,7 +1051,11 @@ def pareto_result_to_dict(
     fuel_model: FuelModel | None = None,
 ) -> dict[str, Any]:
     """Serialize a ParetoSetResult to the format expected by build_demo_data.py and frontend ComparableRecommendations."""
+    fuel_model = fuel_model or PhysicsFuelModel()
     base_genome = result.cheapest.genome
+
+    vessels_by_id = {v["vessel_id"]: v for v in fleet["vessels"]}
+    speed_fractions = [0.05, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9, 1.0]
 
     alternatives_payload = []
     for alt in result.alternatives:
@@ -1058,19 +1063,47 @@ def pareto_result_to_dict(
             alt.genome, fleet, regulations, prices, fuel_model=fuel_model
         )
         change_summary = _build_change_summary(base_genome, alt.genome)
-        config_payload = [
-            {
+
+        config_payload = []
+        for g in alt.genome:
+            vessel = vessels_by_id[g.vessel_id]
+            band = vessel["band"]
+            band_defaults = fleet["vessel_class_defaults"][band]
+            speed_knots = band_defaults["design_speed_knots"] * speed_fractions[g.speed_band_index]
+            facts = vessel_year_facts(g, vessel, fleet, regulations, fuel_model)
+            ghg_tco2e = (facts.energy_mj * facts.actual_ghg_intensity_gco2e_per_mj) / 1_000_000.0
+            route = fleet["routes"][g.route_id]
+            is_international = route.get("voyage_pattern", {}).get("is_international", True)
+            rating = compute_cii_rating(
+                vessel_band=band,
+                dwt_tonnes=band_defaults["dwt_tonnes"],
+                distance_nm=float(route.get("distance_nm", 0)),
+                fuel_tonnes=facts.tonnes,
+                fuel_id=g.fuel_id,
+                year=g.year,
+                regulations=regulations,
+                is_international=is_international,
+                gross_tonnage=band_defaults["gross_tonnage"],
+            )
+            local = _slot_local(g, vessel, fleet, regulations, prices, fuel_model)
+            slot_cost = local.fuel.amount_usd + local.opex.amount_usd + local.time.amount_usd + local.eu_ets.amount_usd + local.nzf.amount_usd
+
+            config_payload.append({
                 "vessel_id": g.vessel_id,
                 "year": g.year,
                 "route_id": g.route_id,
                 "speed_band_index": g.speed_band_index,
+                "speed_knots": round(speed_knots, 2),
                 "fuel_id": g.fuel_id,
                 "shore_power": g.shore_power,
                 "borrow_election": g.borrow_election,
                 "pool_opt_in": g.pool_opt_in,
-            }
-            for g in alt.genome
-        ]
+                "fuel_tonnes": round(facts.tonnes, 2),
+                "ghg_tco2e": round(ghg_tco2e, 2),
+                "cii_rating": rating,
+                "voyage_cost_usd": round(slot_cost, 2),
+            })
+
         alternatives_payload.append({
             "id": alt.strategy_id,
             "definition": alt.definition,

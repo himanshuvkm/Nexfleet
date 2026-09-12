@@ -21,6 +21,8 @@ from nexfleet.fleet.loader import load_fleet, load_prices
 from nexfleet.regulatory.loader import load_regulations
 from nexfleet.fleet.baseline import build_default_baseline_assignments, evaluate_baseline_plan
 from nexfleet.optimization.fuel_predictors import PredictorHub
+from nexfleet.optimization.genome import VesselYearGene
+from nexfleet.optimization.objective import evaluate
 from nexfleet.optimization.qiea_solver import generate_pareto_frontier, pareto_result_to_dict
 from nexfleet.optimization.exposure import (
     compute_exposure,
@@ -263,6 +265,44 @@ def build_demo_data(*, fast: bool = False, optimizer: str = "ga") -> dict:
         n_generations=pareto_gen,
     )
     comparable_recommendations = pareto_result_to_dict(pareto_result, fleet, regulations, prices)
+
+    # Compute exact waterfall breakdown between Baseline (BAU) and Balanced Pareto Plan
+    balanced_alt = next(
+        (a for a in comparable_recommendations["alternatives"] if a["id"] == "balanced"),
+        comparable_recommendations["alternatives"][0]
+    )
+    balanced_genome = [
+        VesselYearGene(
+            vessel_id=item["vessel_id"],
+            year=item["year"],
+            route_id=item["route_id"],
+            speed_band_index=item["speed_band_index"],
+            fuel_id=item["fuel_id"],
+            shore_power=item["shore_power"],
+            borrow_election=item["borrow_election"],
+            pool_opt_in=item["pool_opt_in"],
+        )
+        for item in balanced_alt["configuration"]
+    ]
+    balanced_breakdown = evaluate(balanced_genome, fleet, regulations, prices)
+    balanced_comp_cost = sum(c.amount_usd for c in balanced_breakdown.compliance_costs.values())
+
+    baseline_fuel_cost = baseline_result.objective.fuel_cost.amount_usd
+    baseline_time_cost = baseline_result.objective.time_cost.amount_usd
+    baseline_opex_cost = baseline_result.objective.opex_cost.amount_usd
+
+    balanced_fuel_cost = balanced_breakdown.fuel_cost.amount_usd
+    balanced_time_cost = balanced_breakdown.time_cost.amount_usd
+    balanced_opex_cost = balanced_breakdown.opex_cost.amount_usd
+
+    waterfall_breakdown = {
+        "baseline_total_usd": baseline_result.objective.total_usd,
+        "balanced_total_usd": balanced_alt["metrics"]["total_usd"],
+        "speed_time_savings_usd": baseline_time_cost - balanced_time_cost,
+        "fuel_ops_savings_usd": (baseline_fuel_cost + baseline_opex_cost) - (balanced_fuel_cost + balanced_opex_cost),
+        "compliance_savings_usd": baseline_comp_usd - balanced_comp_cost,
+    }
+    baseline_dict["waterfall_breakdown"] = waterfall_breakdown
 
     # 2. Run carbon-price sweep ($0–$1000 step $25, warm-started)
     print(f"[2/6] Running carbon-price sweep ($0–$1000, step $25, warm-started) with {sweep_kwargs}...")

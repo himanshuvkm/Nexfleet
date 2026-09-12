@@ -89,22 +89,60 @@ export function FleetMatrixView({ data }: { data: DemoData }) {
       )}
 
       {/* Dimension Selection */}
-      <div className="flex flex-wrap items-center gap-2 mb-5 bg-[var(--surface-sunken)] p-2 rounded-xl border border-[var(--border)]">
-        <span className="text-sm text-[var(--text-secondary)] px-2 uppercase tracking-wide">Select Strategy View:</span>
-        {FIELDS.map(f => (
-          <button
-            key={f.key}
-            onClick={() => setField(f.key)}
-            aria-pressed={field === f.key}
-            className={`px-3 py-1.5 rounded-lg text-sm transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:outline-none ${
-              field === f.key
-                ? 'bg-[var(--action-bg)] text-[var(--action-text)] font-semibold'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-elevated)] border border-transparent'
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 bg-[var(--surface-sunken)] p-2 rounded-xl border border-[var(--border)]">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm text-[var(--text-secondary)] px-2 uppercase tracking-wide">Select Strategy View:</span>
+          {FIELDS.map(f => (
+            <button
+              key={f.key}
+              onClick={() => setField(f.key)}
+              aria-pressed={field === f.key}
+              className={`px-3 py-1.5 rounded-lg text-sm transition-colors focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:outline-none ${
+                field === f.key
+                  ? 'bg-[var(--action-bg)] text-[var(--action-text)] font-semibold'
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-elevated)] border border-transparent'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={() => {
+            const currentFieldObj = FIELDS.find(f => f.key === field);
+            const label = currentFieldObj ? currentFieldObj.label : field;
+            const headers = ['Vessel_ID', 'Vessel_Class', 'DWT_Tonnes', 'Strategy_Field', 'Carbon_Price_USD', '2026', '2027', '2028', '2029', '2030'];
+            const rows = deepSeaVessels.map(v => {
+              const defaults = (data.fleet.vessel_class_defaults[v.band] || { dwt_tonnes: 0, design_speed_knots: 0 }) as { dwt_tonnes: number; design_speed_knots: number };
+              const yearValues = YEARS.map(y => {
+                const cur = curMap.get(`${v.vessel_id}:${y}`);
+                const val = cur?.[field];
+                return fmt(field, val, defaults.design_speed_knots);
+              });
+              return [
+                v.vessel_id,
+                VESSEL_CLASS_NAMES[v.band] || v.band,
+                defaults.dwt_tonnes,
+                label,
+                `$${price}`,
+                ...yearValues.map(v => `"${v.replaceAll('"', '""')}"`),
+              ];
+            });
+
+            const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `nexfleet_matrix_${field}_p${price}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          }}
+          className="rounded-md bg-[var(--action-bg)] px-3 py-1.5 text-xs font-bold text-[var(--action-text)] transition-colors hover:bg-[var(--action-bg-hover)] whitespace-nowrap self-start sm:self-auto"
+        >
+          Export Matrix CSV
+        </button>
       </div>
 
       {/* Matrix Table */}

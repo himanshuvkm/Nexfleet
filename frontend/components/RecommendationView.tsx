@@ -258,17 +258,28 @@ function ScorecardSection({ data }: { data: DemoData }) {
   const balanced = pareto?.alternatives.find(a => a.id === 'balanced');
   const greenest = pareto?.alternatives.find(a => a.id === 'greenest');
 
-  const baselineCost = baseline?.total_cost_usd ?? 823537676;
-  const baselineFuel = baseline?.fuel_tonnes ?? 653018;
-  const baselineGhg = baseline?.lifecycle_emissions_tco2e ?? 2414556;
-  const baselineComp = baseline?.compliance_cost_usd ?? 0;
+  if (!baseline) {
+    return (
+      <section className="metric-card mb-6" aria-label="3-Way Benchmark Scorecard">
+        <h2 className="text-sm font-bold uppercase tracking-wide text-[var(--text-primary)]">
+          Tripartite Benchmark Scorecard
+        </h2>
+        <p className="mt-2 text-sm text-[var(--text-secondary)]">Baseline data unavailable in this dataset.</p>
+      </section>
+    );
+  }
+
+  const baselineCost = baseline.total_cost_usd;
+  const baselineFuel = baseline.fuel_tonnes;
+  const baselineGhg = baseline.lifecycle_emissions_tco2e;
+  const baselineComp = baseline.compliance_cost_usd;
 
   const balancedCost = balanced?.metrics.total_usd ?? 0;
   const balancedFuel = balanced?.metrics.fuel_tonnes ?? 0;
   const balancedGhg = balanced?.metrics.lifecycle_emissions_tco2e ?? 0;
   const balancedComp = balanced?.metrics.compliance_usd ?? 0;
 
-  const savingsUsd = baselineCost - balancedCost;
+  const savingsUsd = balanced ? baselineCost - balancedCost : 0;
   const savingsPct = baselineCost > 0 ? (savingsUsd / baselineCost) * 100 : 0;
 
   return (
@@ -325,7 +336,7 @@ function ScorecardSection({ data }: { data: DemoData }) {
               <td className="py-2.5 px-4 text-[var(--text-tertiary)]">Baseline (0%)</td>
               <td className="py-2.5 px-4 text-[var(--success)]">{cheapest ? `${pct((baselineCost - cheapest.metrics.total_usd) / baselineCost, 1)}` : 'N/A'}</td>
               <td className="py-2.5 px-4 text-[var(--success)]">{balanced ? `${pct((baselineCost - balanced.metrics.total_usd) / baselineCost, 1)}` : 'N/A'}</td>
-              <td className="py-2.5 pl-4 text-right font-bold text-[var(--success)]">{pct(savingsPct / 100, 1)} ({usdM(savingsUsd, 1)})</td>
+              <td className="py-2.5 pl-4 text-right font-bold text-[var(--success)]">{balanced ? `${pct(savingsPct / 100, 1)} (${usdM(savingsUsd, 1)})` : 'N/A'}</td>
             </tr>
           </tbody>
         </table>
@@ -339,20 +350,24 @@ function SavingsWaterfallSection({ data }: { data: DemoData }) {
   const pareto = data.comparable_recommendations;
   const balanced = pareto?.alternatives.find(a => a.id === 'balanced') ?? pareto?.alternatives[0];
 
-  const baseCost = baseline?.total_cost_usd ?? 823537676;
-  const finalCost = balanced?.metrics.total_usd ?? 750000000;
-  const totalSavings = baseCost - finalCost;
+  if (!baseline || !balanced || !baseline.waterfall_breakdown) {
+    return (
+      <section className="metric-card mb-6" aria-label="Dynamic Savings Waterfall">
+        <h2 className="text-sm font-bold uppercase tracking-wide text-[var(--text-primary)]">
+          Dynamic Savings & Emissions Waterfall
+        </h2>
+        <p className="mt-2 text-sm text-[var(--text-secondary)]">Waterfall variance breakdown is unavailable in this dataset.</p>
+      </section>
+    );
+  }
 
-  const speedSavings = Math.max(0, totalSavings * 0.45);
-  const fuelImpact = Math.max(0, totalSavings * 0.25);
-  const complianceSavings = Math.max(0, totalSavings * 0.30);
-
+  const waterfall = baseline.waterfall_breakdown;
   const steps = [
-    { label: 'Baseline Operational Cost (BAU)', value: baseCost, kind: 'base' },
-    { label: 'Speed Management Savings', value: -speedSavings, kind: 'saving' },
-    { label: 'Alternative Fuel & Shore Power Savings', value: -fuelImpact, kind: 'saving' },
-    { label: 'EU ETS & FuelEU Penalty Avoidance', value: -complianceSavings, kind: 'saving' },
-    { label: 'Final Optimized Fleet Cost', value: finalCost, kind: 'final' },
+    { label: 'Baseline Operational Cost (BAU)', value: waterfall.baseline_total_usd, kind: 'base' },
+    { label: 'Speed Profile & Charter Time Optimization', value: -waterfall.speed_time_savings_usd, kind: 'saving' },
+    { label: 'Alternative Fuel & Shore Power Selection', value: -waterfall.fuel_ops_savings_usd, kind: 'saving' },
+    { label: 'EU ETS & FuelEU Penalty Avoidance', value: -waterfall.compliance_savings_usd, kind: 'saving' },
+    { label: 'Final Optimized Balanced Plan Cost', value: waterfall.balanced_total_usd, kind: 'final' },
   ];
 
   return (
@@ -367,8 +382,10 @@ function SavingsWaterfallSection({ data }: { data: DemoData }) {
         {steps.map((step, idx) => (
           <div key={idx} className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--surface-sunken)] p-3">
             <span className="font-sans font-medium text-[var(--text-primary)]">{step.label}</span>
-            <span className={`font-bold ${step.kind === 'saving' ? 'text-[var(--success)]' : 'text-[var(--text-primary)]'}`}>
-              {step.kind === 'saving' ? `−${usdM(Math.abs(step.value), 2)}` : usdM(step.value, 2)}
+            <span className={`font-bold ${step.kind === 'saving' ? (step.value <= 0 ? 'text-[var(--success)]' : 'text-[var(--warning)]') : 'text-[var(--text-primary)]'}`}>
+              {step.kind === 'saving'
+                ? (step.value <= 0 ? `−${usdM(Math.abs(step.value), 2)}` : `+${usdM(step.value, 2)}`)
+                : usdM(step.value, 2)}
             </span>
           </div>
         ))}
@@ -382,16 +399,34 @@ function exportDispatchCsv(data: DemoData) {
   const balanced = pareto?.alternatives.find(a => a.id === 'balanced') ?? pareto?.alternatives[0];
   const config = balanced?.configuration ?? [];
 
-  const headers = ['Vessel_ID', 'Year', 'Route', 'Speed_Band_Index', 'Fuel_Type', 'Shore_Power', 'FuelEU_Pool', 'Borrow_Election'];
+  const headers = [
+    'Vessel_ID',
+    'Year',
+    'Route',
+    'Speed_Knots',
+    'Fuel_Type',
+    'Shore_Power',
+    'FuelEU_Pool',
+    'Borrow_Election',
+    'Fuel_Tonnes',
+    'GHG_tCO2e',
+    'CII_Rating',
+    'Voyage_Cost_USD',
+  ];
+
   const rows = config.map(g => [
     g.vessel_id,
     g.year,
     g.route_id,
-    g.speed_band_index,
+    g.speed_knots != null ? g.speed_knots.toFixed(1) : `Band ${g.speed_band_index}`,
     g.fuel_id,
     g.shore_power ? 'YES' : 'NO',
     g.pool_opt_in ? 'YES' : 'NO',
     g.borrow_election ? 'YES' : 'NO',
+    g.fuel_tonnes != null ? g.fuel_tonnes.toFixed(1) : 'N/A',
+    g.ghg_tco2e != null ? g.ghg_tco2e.toFixed(1) : 'N/A',
+    g.cii_rating ?? 'N/A',
+    g.voyage_cost_usd != null ? g.voyage_cost_usd.toFixed(2) : 'N/A',
   ]);
 
   const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');

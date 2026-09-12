@@ -22,10 +22,15 @@ export interface VesselYearGene {
   year: number;
   route_id: string;
   speed_band_index: number;
+  speed_knots?: number;
   fuel_id: string;
   shore_power: boolean;
   pool_opt_in: boolean;
   borrow_election: boolean;
+  fuel_tonnes?: number;
+  ghg_tco2e?: number;
+  cii_rating?: string;
+  voyage_cost_usd?: number;
 }
 
 export interface GridPointResult {
@@ -208,6 +213,14 @@ export interface ExposureData {
   consistency_checks: any[];
 }
 
+export interface WaterfallBreakdown {
+  baseline_total_usd: number;
+  balanced_total_usd: number;
+  speed_time_savings_usd: number;
+  fuel_ops_savings_usd: number;
+  compliance_savings_usd: number;
+}
+
 export interface BaselineData {
   total_cost_usd: number;
   fuel_tonnes: number;
@@ -215,6 +228,7 @@ export interface BaselineData {
   compliance_cost_usd: number;
   cii_ratings: Record<string, string>;
   vessel_breakdown: Array<Record<string, any>>;
+  waterfall_breakdown?: WaterfallBreakdown;
 }
 
 export interface DemoData {
