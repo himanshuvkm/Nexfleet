@@ -31,6 +31,7 @@ from nexfleet.optimization.genome import (
     mutate_genome,
     random_genome,
 )
+from nexfleet.optimization.fuel_model import FuelModel
 from nexfleet.optimization.objective import ObjectiveCache, ObjectiveResult, evaluate
 
 # `creator.create` registers a class in `deap.creator`'s module-level
@@ -95,6 +96,7 @@ def _build_toolbox(
     rng: random.Random,
     tournament_size: int,
     cache: ObjectiveCache,
+    fuel_model: FuelModel | None = None,
 ) -> base.Toolbox:
     toolbox = base.Toolbox()
 
@@ -112,7 +114,7 @@ def _build_toolbox(
         return (ind,)
 
     def fitness_of(ind) -> tuple[float]:
-        return (evaluate(list(ind), fleet, regulations, prices, cache=cache).total_usd,)
+        return (evaluate(list(ind), fleet, regulations, prices, fuel_model=fuel_model, cache=cache).total_usd,)
 
     toolbox.register("individual", make_individual)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
@@ -122,6 +124,7 @@ def _build_toolbox(
     toolbox.register("select", _tournament_select, tournament_size=tournament_size, rng=rng)
     toolbox.register("evaluate", fitness_of)
     return toolbox
+
 
 
 def _seeded_population(
@@ -177,6 +180,8 @@ def _local_search_refine(
     max_sweeps: int = 6,
     reference_genome: Genome | None = None,
     cache: ObjectiveCache | None = None,
+    fuel_model: FuelModel | None = None,
+    fitness_func: Any | None = None,
 ) -> tuple[Genome, float]:
     """Coordinate-descent polish over the GA's output: visit every
     vessel-year slot (in a shuffled order, using the same seeded `rng` as
@@ -227,7 +232,13 @@ def _local_search_refine(
     """
     vessels_by_id = {v["vessel_id"]: v for v in fleet["vessels"]}
     genome = list(genome)
-    current_total = evaluate(genome, fleet, regulations, prices, cache=cache).total_usd
+
+    def _eval(cand: Genome) -> float:
+        if fitness_func is not None:
+            return float(fitness_func(cand))
+        return evaluate(cand, fleet, regulations, prices, fuel_model=fuel_model, cache=cache).total_usd
+
+    current_total = _eval(genome)
 
     slot_order = list(range(len(genome)))
     for _ in range(max_sweeps):
@@ -241,7 +252,7 @@ def _local_search_refine(
             best_total = current_total
             for candidate_gene in _gene_field_candidates(gene, menu):
                 trial = genome[:i] + [candidate_gene] + genome[i + 1 :]
-                total = evaluate(trial, fleet, regulations, prices, cache=cache).total_usd
+                total = _eval(trial)
                 if total < best_total - 1e-6:
                     best_total = total
                     best_gene = candidate_gene
@@ -254,7 +265,15 @@ def _local_search_refine(
 
     if reference_genome is not None:
         genome, current_total = _canonicalize_against(
-            genome, reference_genome, current_total, fleet, regulations, prices, cache
+            genome,
+            reference_genome,
+            current_total,
+            fleet,
+            regulations,
+            prices,
+            cache,
+            fuel_model=fuel_model,
+            fitness_func=fitness_func,
         )
     return genome, current_total
 
@@ -267,6 +286,8 @@ def _canonicalize_against(
     regulations: dict[str, Any],
     prices: dict[str, Any],
     cache: ObjectiveCache | None,
+    fuel_model: FuelModel | None = None,
+    fitness_func: Any | None = None,
 ) -> tuple[Genome, float]:
     """Revert every cost-neutral difference from `reference_genome` (see
     `_local_search_refine`'s docstring for why). Field by field rather than
@@ -280,6 +301,11 @@ def _canonicalize_against(
     vessels_by_id = {v["vessel_id"]: v for v in fleet["vessels"]}
     reference_by_slot = {(gene.vessel_id, gene.year): gene for gene in reference_genome}
     genome = list(genome)
+
+    def _eval(cand: Genome) -> float:
+        if fitness_func is not None:
+            return float(fitness_func(cand))
+        return evaluate(cand, fleet, regulations, prices, fuel_model=fuel_model, cache=cache).total_usd
 
     for i, gene in enumerate(genome):
         reference_gene = reference_by_slot.get((gene.vessel_id, gene.year))
@@ -299,7 +325,7 @@ def _canonicalize_against(
                 continue
             candidate = replace(current, **{field_name: reference_value})
             trial = genome[:i] + [candidate] + genome[i + 1 :]
-            total = evaluate(trial, fleet, regulations, prices, cache=cache).total_usd
+            total = _eval(trial)
             # Strictly a tie-break: `abs`, not `<=`. Accepting a strictly
             # *better* reference value here would work -- the coordinate
             # descent above stops at `max_sweeps` and does leave some on the
@@ -315,6 +341,7 @@ def _canonicalize_against(
     return genome, current_total
 
 
+
 def run_ga(
     fleet: dict[str, Any],
     regulations: dict[str, Any],
@@ -328,6 +355,7 @@ def run_ga(
     tournament_size: int = 3,
     seed_genome: Genome | None = None,
     reference_genome: Genome | None = None,
+    fuel_model: FuelModel | None = None,
 ) -> SolverResult:
     """Evolve a population of genomes to (approximately) minimize total fleet cost.
 
@@ -351,7 +379,9 @@ def run_ga(
     """
     rng = random.Random(seed)
     cache = ObjectiveCache()
-    toolbox = _build_toolbox(fleet, regulations, prices, rng, tournament_size, cache)
+    toolbox = _build_toolbox(
+        fleet, regulations, prices, rng, tournament_size, cache, fuel_model=fuel_model
+    )
 
     if seed_genome is not None:
         population = _seeded_population(toolbox, fleet, seed_genome, population_size, rng)
@@ -386,7 +416,7 @@ def run_ga(
 
     best = hall_of_fame[0]
     best_genome = list(best)
-    breakdown = evaluate(best_genome, fleet, regulations, prices, cache=cache)
+    breakdown = evaluate(best_genome, fleet, regulations, prices, fuel_model=fuel_model, cache=cache)
 
     # Coordinate-descent polish (see _local_search_refine's docstring):
     # closes real single-slot convergence gaps the GA's finite population/
@@ -400,12 +430,13 @@ def run_ga(
         rng,
         reference_genome=reference_genome if reference_genome is not None else seed_genome,
         cache=cache,
+        fuel_model=fuel_model,
     )
     # `<=` (not `<`): the canonicalization pass deliberately returns an
     # equal-cost plan, and that plan is the one worth keeping.
     if polished_total <= breakdown.total_usd + DEGENERATE_COST_TOLERANCE_USD:
         best_genome = polished_genome
-        breakdown = evaluate(best_genome, fleet, regulations, prices, cache=cache)
+        breakdown = evaluate(best_genome, fleet, regulations, prices, fuel_model=fuel_model, cache=cache)
 
     return SolverResult(
         best_genome=best_genome,
@@ -413,3 +444,4 @@ def run_ga(
         best_breakdown=breakdown,
         generations_run=n_generations,
     )
+

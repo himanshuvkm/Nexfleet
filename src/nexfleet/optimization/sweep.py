@@ -75,6 +75,7 @@ def _run_solver(
     tournament_size: int,
     seed_genome: Genome | None = None,
     reference_genome: Genome | None = None,
+    fuel_model: FuelModel | None = None,
 ) -> solver.SolverResult:
     """Dispatch to `solver.run_ga` (the classical GA) or
     `qiea_solver.run_qiea` (the Quantum-Inspired Evolutionary Algorithm) —
@@ -100,6 +101,7 @@ def _run_solver(
             tournament_size=tournament_size,
             seed_genome=seed_genome,
             reference_genome=reference_genome,
+            fuel_model=fuel_model,
         )
     if optimizer == "qiea":
         return qiea_solver.run_qiea(
@@ -111,6 +113,7 @@ def _run_solver(
             n_generations=n_generations,
             seed_genome=seed_genome,
             reference_genome=reference_genome,
+            fuel_model=fuel_model,
         )
     raise ValueError(f"unknown optimizer {optimizer!r}; expected one of {_OPTIMIZERS}")
 
@@ -127,6 +130,7 @@ def solve_scenario(
     seed_genome: Genome | None = None,
     reference_genome: Genome | None = None,
     optimizer: str = "ga",
+    fuel_model: FuelModel | None = None,
 ) -> solver.SolverResult:
     """Resolve `scenario_id`'s regulations and run the solver under them —
     the "solve the fleet plan under one named K=5 regulatory scenario"
@@ -151,7 +155,9 @@ def solve_scenario(
         tournament_size=tournament_size,
         seed_genome=seed_genome,
         reference_genome=reference_genome,
+        fuel_model=fuel_model,
     )
+
 
 
 def _nzf_price_override(base_regulations: dict[str, Any], price: float) -> dict[str, Any]:
@@ -713,6 +719,7 @@ def _reattempt_corrected_points(
     n_generations: int,
     tournament_size: int,
     optimizer: str = "ga",
+    fuel_model: FuelModel | None = None,
 ) -> list[GridPointResult]:
     """Review defect 2: a point the envelope correction replaced with a
     distant donor's genome gets one additional, fully independent cold
@@ -759,7 +766,9 @@ def _reattempt_corrected_points(
             n_generations=n_generations,
             tournament_size=tournament_size,
             reference_genome=point.genome,
+            fuel_model=fuel_model,
         )
+
         if result.best_total_usd < point.total_usd:
             reattempted.append(
                 GridPointResult(
@@ -855,6 +864,7 @@ def run_sweep(
                 population_size=population_size,
                 n_generations=cold_generations,
                 tournament_size=tournament_size,
+                fuel_model=fuel_model,
             )
             elapsed = time.perf_counter() - start
             grid_points.append(
@@ -880,6 +890,7 @@ def run_sweep(
                 n_generations=warm_generations,
                 tournament_size=tournament_size,
                 seed_genome=previous_genome,
+                fuel_model=fuel_model,
             )
             warm_elapsed = time.perf_counter() - start
             grid_points.append(
@@ -908,6 +919,7 @@ def run_sweep(
                     population_size=population_size,
                     n_generations=cold_generations,
                     tournament_size=tournament_size,
+                    fuel_model=fuel_model,
                 )
                 cold_elapsed = time.perf_counter() - cold_start
                 warm_start_benchmark = WarmStartBenchmark(
@@ -927,7 +939,9 @@ def run_sweep(
         n_generations=cold_generations,
         tournament_size=tournament_size,
         optimizer=optimizer,
+        fuel_model=fuel_model,
     )
+
     # Re-tighten: a genuinely independent genome found above can also be
     # the new best answer for a *different* price, not just the one it was
     # solved for -- and re-running this is cheap (evaluate() calls only).

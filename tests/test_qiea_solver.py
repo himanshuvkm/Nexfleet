@@ -292,3 +292,106 @@ class TestPolish:
         polished = run_qiea(fleet, regulations, prices, polish=True, **kwargs)
         unpolished = run_qiea(fleet, regulations, prices, polish=False, **kwargs)
         assert unpolished.best_total_usd >= polished.best_total_usd
+
+
+class TestQIEACustomFuelModel:
+    def test_run_qiea_accepts_and_threads_custom_fuel_model(self, fleet, regulations, prices):
+        from nexfleet.optimization.fuel_model import PhysicsFuelModel
+
+        class ScaledFuelModel(PhysicsFuelModel):
+            def fuel_consumption_tonnes(self, vessel, fleet, year, speed_knots, fuel_id, route_id):
+                return 1.20 * super().fuel_consumption_tonnes(vessel, fleet, year, speed_knots, fuel_id, route_id)
+
+        custom_model = ScaledFuelModel()
+        res_custom = run_qiea(
+            fleet,
+            regulations,
+            prices,
+            seed=42,
+            population_size=8,
+            n_generations=4,
+            fuel_model=custom_model,
+        )
+        default_breakdown = evaluate(res_custom.best_genome, fleet, regulations, prices)
+        # Verify that res_custom.best_breakdown was indeed evaluated with custom_model:
+        assert res_custom.best_breakdown.fuel_cost.amount_usd == pytest.approx(
+            default_breakdown.fuel_cost.amount_usd * 1.20
+        )
+        assert res_custom.best_breakdown.fuel_cost.amount_usd > default_breakdown.fuel_cost.amount_usd
+
+
+
+class TestGenerateParetoFrontier:
+    def test_generate_pareto_frontier_returns_valid_pareto_result(self, fleet, regulations, prices):
+        from nexfleet.optimization.qiea_solver import (
+            ParetoSetResult,
+            generate_pareto_frontier,
+            pareto_result_to_dict,
+        )
+
+        result = generate_pareto_frontier(
+            fleet,
+            regulations,
+            prices,
+            steps=3,
+            population_size=8,
+            n_generations=4,
+            seed=42,
+        )
+        assert isinstance(result, ParetoSetResult)
+        assert result.cheapest.strategy_id == "cheapest"
+        assert result.balanced.strategy_id == "balanced"
+        assert result.greenest.strategy_id == "greenest"
+        assert len(result.alternatives) == 3
+
+        # Non-domination directional sanity:
+        # Cheapest cost should be <= Greenest cost + tolerance
+        assert result.cheapest.total_cost_usd <= result.greenest.total_cost_usd + 1e-6
+        # Greenest emissions should be <= Cheapest emissions + tolerance
+        assert result.greenest.lifecycle_ghg_tco2e <= result.cheapest.lifecycle_ghg_tco2e + 1e-6
+        # Balanced plan cost and emissions should lie bounded between Cheapest and Greenest
+        assert result.cheapest.total_cost_usd <= result.balanced.total_cost_usd + 1e-6 or pytest.approx(
+            result.cheapest.total_cost_usd, rel=1e-3
+        ) == result.balanced.total_cost_usd
+        assert result.greenest.lifecycle_ghg_tco2e <= result.balanced.lifecycle_ghg_tco2e + 1e-6 or pytest.approx(
+            result.greenest.lifecycle_ghg_tco2e, rel=1e-3
+        ) == result.balanced.lifecycle_ghg_tco2e
+
+    def test_pareto_result_to_dict_matches_frontend_contract(self, fleet, regulations, prices):
+        from nexfleet.optimization.qiea_solver import generate_pareto_frontier, pareto_result_to_dict
+
+        result = generate_pareto_frontier(
+            fleet,
+            regulations,
+            prices,
+            steps=3,
+            population_size=8,
+            n_generations=4,
+            seed=10,
+        )
+        payload = pareto_result_to_dict(result, fleet, regulations, prices)
+        assert payload["status"] == "SYNTHETIC_COMPARABLE_ALTERNATIVES"
+        assert payload["optimizer"] == "qiea"
+        assert "alternatives" in payload
+        assert len(payload["alternatives"]) == 3
+
+        alt_ids = [a["id"] for a in payload["alternatives"]]
+        assert alt_ids == ["cheapest", "balanced", "greenest"]
+
+        cheapest_alt = payload["alternatives"][0]
+        assert "configuration" in cheapest_alt
+        assert len(cheapest_alt["configuration"]) == len(fleet["vessels"]) * len(fleet["horizon_years"])
+        assert "metrics" in cheapest_alt
+        metrics = cheapest_alt["metrics"]
+        assert "total_usd" in metrics
+        assert "compliance_usd" in metrics
+        assert "fuel_tonnes" in metrics
+        assert "lifecycle_emissions_tco2e" in metrics
+        assert "annual_service" in metrics
+        assert "cargo" in metrics
+        assert isinstance(metrics["annual_service"]["passed"], bool)
+        assert isinstance(metrics["cargo"]["passed"], bool)
+
+        # Cheapest change_summary is empty/zero diff
+        assert cheapest_alt["change_summary"]["changed_vessel_years"] == 0
+

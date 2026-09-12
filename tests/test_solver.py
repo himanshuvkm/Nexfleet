@@ -146,3 +146,30 @@ class TestFiveScenariosUnderSixtySeconds:
             elapsed = time.perf_counter() - start
             assert elapsed < 60.0, f"{scenario_id} took {elapsed:.1f}s, over the 60s budget"
             assert result.best_total_usd > 0
+
+
+class TestCustomFuelModel:
+    def test_run_ga_accepts_and_threads_custom_fuel_model(self, fleet, regulations, prices):
+        from nexfleet.optimization.fuel_model import PhysicsFuelModel
+
+        class ScaledFuelModel(PhysicsFuelModel):
+            def fuel_consumption_tonnes(self, vessel, fleet, year, speed_knots, fuel_id, route_id):
+                return 1.20 * super().fuel_consumption_tonnes(vessel, fleet, year, speed_knots, fuel_id, route_id)
+
+        custom_model = ScaledFuelModel()
+        res_custom = run_ga(
+            fleet,
+            regulations,
+            prices,
+            seed=42,
+            population_size=10,
+            n_generations=5,
+            fuel_model=custom_model,
+        )
+        default_breakdown = evaluate(res_custom.best_genome, fleet, regulations, prices)
+        assert res_custom.best_breakdown.fuel_cost.amount_usd == pytest.approx(
+            default_breakdown.fuel_cost.amount_usd * 1.20
+        )
+        assert res_custom.best_breakdown.fuel_cost.amount_usd > default_breakdown.fuel_cost.amount_usd
+
+
