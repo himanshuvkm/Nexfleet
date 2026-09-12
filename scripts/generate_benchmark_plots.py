@@ -1,4 +1,4 @@
-﻿"""Generate presentation-ready benchmark visualization plots from benchmark JSON outputs.
+"""Generate presentation-ready benchmark visualization plots from benchmark JSON outputs.
 
 Reads:
 - outputs/fuel_predictor_benchmark.json
@@ -11,10 +11,14 @@ Generates:
 - outputs/plots/fuel_fit_time.png
 - outputs/plots/optimizer_runtime_cost.png
 - outputs/plots/optimizer_polish_effect.png
+<<<<<<< HEAD
 - outputs/plots/emissions_vs_carbon_price.png
 - outputs/plots/baseline_vs_lowest_emissions.png
 - outputs/plots/fuel_mix_transition.png
 - outputs/plots/plan_cost_emissions_tradeoff.png
+=======
+- outputs/plots/optimizer_multiseed_distribution.png
+>>>>>>> e1ddc00825be4e0e5b3de70544de44272af96049
 """
 
 from __future__ import annotations
@@ -355,38 +359,50 @@ def plot_fuel_fit_time(data: dict, output_path: Path) -> None:
 
 def plot_optimizer_runtime_cost(data: dict, output_path: Path) -> None:
     """Grouped comparison of GA vs QIEA runtime and best fleet cost."""
-    ga_info = data.get("ga", {})
-    qiea_info = data.get("qiea", {})
-    if not ga_info or not qiea_info:
-        raise KeyError("Keys 'ga' and/or 'qiea' missing from optimizer benchmark JSON")
+    # Check multi-seed battery or sweep comparison
+    if "statistical_multiseed_battery" in data:
+        mb = data["statistical_multiseed_battery"]
+        ga_time = mb["ga"]["runtime_stats"]["mean"]
+        qiea_time = mb["qiea"]["runtime_stats"]["mean"]
+        ga_cost_m = mb["ga"]["cost_stats"]["mean"] / 1e6
+        qiea_cost_m = mb["qiea"]["cost_stats"]["mean"] / 1e6
+        title_suffix = f"({mb['n_seeds']}-Seed Statistical Mean)"
+    else:
+        ga_info = data.get("ga") or data.get("sweep_comparison", {}).get("ga", {})
+        qiea_info = data.get("qiea") or data.get("sweep_comparison", {}).get("qiea", {})
+        ga_time = ga_info.get("total_seconds", 0.0)
+        qiea_time = qiea_info.get("total_seconds", 0.0)
+        ga_cost_m = ga_info.get("min_total_usd_across_grid", 0.0) / 1e6
+        qiea_cost_m = qiea_info.get("min_total_usd_across_grid", 0.0) / 1e6
+        title_suffix = "(Sweep Best)"
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5.5), dpi=150)
     
     optimizers = ["Classical GA", "Quantum-Inspired\n(QIEA)"]
-    runtimes = [ga_info.get("total_seconds", 0.0), qiea_info.get("total_seconds", 0.0)]
-    min_costs_m = [ga_info.get("min_total_usd_across_grid", 0.0) / 1e6, qiea_info.get("min_total_usd_across_grid", 0.0) / 1e6]
+    runtimes = [ga_time, qiea_time]
+    costs_m = [ga_cost_m, qiea_cost_m]
     
     # Subplot 1: Runtime
     bar_colors1 = ["#3182CE", "#805AD5"]
     bars1 = ax1.bar(optimizers, runtimes, color=bar_colors1, width=0.45, edgecolor="#1A202C", linewidth=1.2, zorder=3)
     ax1.grid(axis="y", linestyle="--", alpha=0.7, zorder=0)
-    ax1.set_ylabel("Total Benchmark Runtime (Seconds)", fontsize=11, fontweight="bold")
-    ax1.set_title("Optimization Runtime\n(GA is ~2.4x Faster)", fontsize=12, fontweight="bold")
+    ax1.set_ylabel("Mean Optimization Runtime (Seconds)", fontsize=11, fontweight="bold")
+    ax1.set_title(f"Optimization Runtime\n{title_suffix}", fontsize=12, fontweight="bold")
     for bar, val in zip(bars1, runtimes):
-        ax1.text(bar.get_x() + bar.get_width() / 2.0, val + 1.5, f"{val:.1f} s", ha="center", va="bottom", fontsize=10, fontweight="bold")
-    ax1.set_ylim(0, max(runtimes) * 1.2)
+        ax1.text(bar.get_x() + bar.get_width() / 2.0, val + 0.1, f"{val:.2f} s", ha="center", va="bottom", fontsize=10, fontweight="bold")
+    ax1.set_ylim(0, max(runtimes) * 1.25)
 
     # Subplot 2: Best Total Fleet Cost
-    bars2 = ax2.bar(optimizers, min_costs_m, color=bar_colors1, width=0.45, edgecolor="#1A202C", linewidth=1.2, zorder=3)
+    bars2 = ax2.bar(optimizers, costs_m, color=bar_colors1, width=0.45, edgecolor="#1A202C", linewidth=1.2, zorder=3)
     ax2.grid(axis="y", linestyle="--", alpha=0.7, zorder=0)
-    ax2.set_ylabel("5-Year Optimal Fleet Cost (Million USD)", fontsize=11, fontweight="bold")
-    ax2.set_title("Delivered Best Cost Across Grid\n(Virtual Tie: 0.10% Margin)", fontsize=12, fontweight="bold")
+    ax2.set_ylabel("5-Year Total Cost (Million USD)", fontsize=11, fontweight="bold")
+    ax2.set_title(f"5-Year Optimal Fleet Cost\n{title_suffix}", fontsize=12, fontweight="bold")
     
-    min_val = min(min_costs_m)
-    ax2.set_ylim(min_val * 0.98, max(min_costs_m) * 1.01)
+    min_val = min(costs_m)
+    ax2.set_ylim(min_val * 0.98, max(costs_m) * 1.01)
     
-    for bar, val in zip(bars2, min_costs_m):
-        ax2.text(bar.get_x() + bar.get_width() / 2.0, val + (max(min_costs_m) - min_val) * 0.1, f"M", ha="center", va="bottom", fontsize=10, fontweight="bold")
+    for bar, val in zip(bars2, costs_m):
+        ax2.text(bar.get_x() + bar.get_width() / 2.0, val + (max(costs_m) - min_val) * 0.1, f"${val:.2f}M", ha="center", va="bottom", fontsize=10, fontweight="bold")
 
     fig.suptitle("Optimizer Benchmark: Classical GA vs. Quantum-Inspired QIEA", fontsize=14, fontweight="bold", y=1.02)
     plt.tight_layout()
@@ -397,18 +413,17 @@ def plot_optimizer_runtime_cost(data: dict, output_path: Path) -> None:
 
 def plot_optimizer_polish_effect(data: dict, output_path: Path) -> None:
     """Cost gap closing after coordinate-descent polish for search attribution."""
-    attr = data.get("search_attribution", {})
-    if not attr or "raw_search_polish_disabled" not in attr or "end_to_end_polish_enabled" not in attr:
-        raise KeyError("Search attribution ablation data missing in optimizer benchmark JSON")
+    attr = data.get("ablation_study") or data.get("search_attribution", {})
+    if not attr:
+        raise KeyError("Ablation / search attribution data missing in optimizer benchmark JSON")
 
-    raw = attr["raw_search_polish_disabled"]
-    end = attr["end_to_end_polish_enabled"]
+    raw = attr.get("raw_search_polish_disabled", {})
+    raw_uni = (raw.get("uniform_init", {}).get("mean") or raw.get("uniform_init", {}).get("mean_total_usd", 0.0)) / 1e6
+    raw_mf = (raw.get("mean_field_init", {}).get("mean") or raw.get("mean_field_init", {}).get("mean_total_usd", 0.0)) / 1e6
     
-    raw_uni = raw["uniform_init"]["mean_total_usd"] / 1e6
-    raw_mf = raw["mean_field_init"]["mean_total_usd"] / 1e6
-    
-    end_uni = end["uniform_init"]["mean_total_usd"] / 1e6
-    end_mf = end["mean_field_init"]["mean_total_usd"] / 1e6
+    e2e = attr.get("end_to_end_pipeline") or attr.get("end_to_end_polish_enabled", {})
+    end_uni = (e2e.get("uniform_init", {}).get("mean") or e2e.get("uniform_init", {}).get("mean_total_usd", 0.0)) / 1e6
+    end_mf = (e2e.get("mean_field_init", {}).get("mean") or e2e.get("mean_field_init", {}).get("mean_total_usd", 0.0)) / 1e6
     
     fig, ax = plt.subplots(figsize=(9, 6), dpi=150)
     
@@ -428,32 +443,10 @@ def plot_optimizer_polish_effect(data: dict, output_path: Path) -> None:
     
     for rect in rects1:
         y = rect.get_height()
-        ax.text(rect.get_x() + rect.get_width()/2.0, y + 5, f"M", ha="center", va="bottom", fontsize=10, fontweight="bold")
+        ax.text(rect.get_x() + rect.get_width()/2.0, y + 5, f"${y:.1f}M", ha="center", va="bottom", fontsize=10, fontweight="bold")
     for rect in rects2:
         y = rect.get_height()
-        ax.text(rect.get_x() + rect.get_width()/2.0, y + 5, f"M", ha="center", va="bottom", fontsize=10, fontweight="bold")
-
-    ax.annotate(
-        "-11.2% Raw Search\nAdvantage with Prior",
-        xy=(0 + width/2, raw_mf),
-        xytext=(0.35, (raw_uni + raw_mf)/2),
-        arrowprops=dict(facecolor="#2B6CB0", shrink=0.08, width=1.5, headwidth=6),
-        fontsize=10,
-        fontweight="bold",
-        color="#2B6CB0",
-        bbox=dict(boxstyle="round,pad=0.3", facecolor="#EBF8FF", edgecolor="#3182CE", alpha=0.9)
-    )
-    
-    ax.annotate(
-        "Equalized at ~\n(0.04% Difference)",
-        xy=(1, end_mf),
-        xytext=(0.85, end_mf + 45),
-        arrowprops=dict(facecolor="#2F855A", shrink=0.08, width=1.5, headwidth=6),
-        fontsize=10,
-        fontweight="bold",
-        color="#22543D",
-        bbox=dict(boxstyle="round,pad=0.3", facecolor="#F0FFF4", edgecolor="#38A169", alpha=0.9)
-    )
+        ax.text(rect.get_x() + rect.get_width()/2.0, y + 5, f"${y:.1f}M", ha="center", va="bottom", fontsize=10, fontweight="bold")
 
     ax.set_ylim(320, max(raw_uni, raw_mf) * 1.15)
     plt.tight_layout()
