@@ -496,3 +496,30 @@ export interface LiveOptimizerResult {
   validation_messages: string[];
 }
 
+export interface FuelAlternativeItem {
+  fuel_id: string;
+  fuel_name: string;
+  is_baseline: boolean;
+  tag: string;
+  vessel_5yr_ghg_tco2e: number;
+  vessel_5yr_fuel_tonnes: number;
+  vessel_5yr_cost_usd: number;
+  vessel_5yr_fueleu_penalty_usd: number;
+  ghg_reduction_tco2e: number;
+  ghg_reduction_percent: number;
+  cost_delta_usd: number;
+  abatement_cost_usd_per_tco2e: number;
+  break_even_carbon_price_usd: number | null;
+  fleet_total_cost_usd: number;
+  fleet_lifecycle_emissions_tco2e: number;
+}
+
+export interface FuelComparisonResponse {
+  status: string;
+  vessel_id: string;
+  engine_type: string;
+  carbon_price_usd_per_tco2e: number;
+  cargo_demand_multiplier: number;
+  baseline_fuel_id: string;
+  fuels: FuelAlternativeItem[];
+}

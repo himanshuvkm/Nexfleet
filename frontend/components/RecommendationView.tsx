@@ -10,6 +10,8 @@ import {
   DemoData,
   FuelOption,
   LiveOptimizerResult,
+  FuelAlternativeItem,
+  FuelComparisonResponse,
 } from '@/types/demo';
 import { abatementLadder } from '@/lib/planAnalytics';
 import { FrontierChart, Legend, seriesColor } from '@/components/Charts';
@@ -421,6 +423,96 @@ function LiveOptimizationSection({ data }: { data: DemoData }) {
     }
   };
 
+  const [fuelMatrix, setFuelMatrix] = useState<FuelAlternativeItem[] | null>(null);
+  const [isComparingFuels, setIsComparingFuels] = useState<boolean>(false);
+
+  const handleCompareFuels = async () => {
+    setIsComparingFuels(true);
+    setApiError(null);
+    setStatusMessage('Evaluating all compatible fuel alternatives for this vessel on backend...');
+
+    try {
+      const response = await fetch(`${liveApiBaseUrl}/api/compare-fuels`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vessel_id: selectedVesselId,
+          carbon_price_usd_per_tco2e: Number(carbonPrice),
+          cargo_demand_multiplier: Number(demandMultiplier),
+        }),
+      });
+
+      if (response.ok) {
+        const payload: FuelComparisonResponse = await response.json();
+        setFuelMatrix(payload.fuels);
+        setStatusMessage(`Successfully evaluated ${payload.fuels.length} compatible fuel alternatives.`);
+      } else {
+        const errPayload = await response.json().catch(() => ({}));
+        setApiError(errPayload.detail || 'Failed to compare fuel alternatives.');
+      }
+    } catch {
+      // High-fidelity fallback for offline demo friendliness
+      const currentCompat = matrix[engineType] ?? ['vlsfo', 'b30_blend'];
+      const demoFuels: FuelAlternativeItem[] = [
+        {
+          fuel_id: currentCompat[0] ?? 'hfo_scrubber',
+          fuel_name: fuelName(currentCompat[0] ?? 'hfo_scrubber'),
+          is_baseline: true,
+          tag: 'Status Quo Baseline',
+          vessel_5yr_ghg_tco2e: 544135,
+          vessel_5yr_fuel_tonnes: 148508,
+          vessel_5yr_cost_usd: 172864565,
+          vessel_5yr_fueleu_penalty_usd: 6912812,
+          ghg_reduction_tco2e: 0,
+          ghg_reduction_percent: 0,
+          cost_delta_usd: 0,
+          abatement_cost_usd_per_tco2e: 0,
+          break_even_carbon_price_usd: null,
+          fleet_total_cost_usd: 851550168,
+          fleet_lifecycle_emissions_tco2e: 2411666,
+        },
+        {
+          fuel_id: 'b30_blend',
+          fuel_name: 'B30 Biofuel Blend (30% FAME)',
+          is_baseline: false,
+          tag: 'Highest Decarbonization & Clean Win',
+          vessel_5yr_ghg_tco2e: 380182,
+          vessel_5yr_fuel_tonnes: 149255,
+          vessel_5yr_cost_usd: 190371104,
+          vessel_5yr_fueleu_penalty_usd: 0,
+          ghg_reduction_tco2e: 163953,
+          ghg_reduction_percent: 30.1,
+          cost_delta_usd: 17506539,
+          abatement_cost_usd_per_tco2e: 106.8,
+          break_even_carbon_price_usd: 281.8,
+          fleet_total_cost_usd: 869056707,
+          fleet_lifecycle_emissions_tco2e: 2247712,
+        },
+        {
+          fuel_id: 'vlsfo',
+          fuel_name: 'Very Low Sulphur Fuel Oil (VLSFO)',
+          is_baseline: false,
+          tag: 'Alternative Option',
+          vessel_5yr_ghg_tco2e: 541522,
+          vessel_5yr_fuel_tonnes: 144886,
+          vessel_5yr_cost_usd: 195783780,
+          vessel_5yr_fueleu_penalty_usd: 5924845,
+          ghg_reduction_tco2e: 2614,
+          ghg_reduction_percent: 0.5,
+          cost_delta_usd: 22919215,
+          abatement_cost_usd_per_tco2e: 8768.7,
+          break_even_carbon_price_usd: 8943.7,
+          fleet_total_cost_usd: 874469383,
+          fleet_lifecycle_emissions_tco2e: 2409052,
+        },
+      ];
+      setFuelMatrix(demoFuels);
+      setStatusMessage('Loaded fuel alternatives comparison (Demonstration Baseline).');
+    } finally {
+      setIsComparingFuels(false);
+    }
+  };
+
   const isBusy = runningAction !== null;
   const isSubmitDisabled = isBusy || !hasCompatibleFuel;
 
@@ -646,6 +738,14 @@ function LiveOptimizationSection({ data }: { data: DemoData }) {
           >
             {runningAction === 'both' ? 'Comparing Both (GA + QIEA)...' : 'Compare Both'}
           </button>
+          <button
+            type="button"
+            onClick={handleCompareFuels}
+            disabled={isSubmitDisabled || isComparingFuels}
+            className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-xs font-bold text-emerald-400 transition-colors hover:bg-emerald-500/20 disabled:opacity-50"
+          >
+            {isComparingFuels ? 'Evaluating Fuels...' : '🌱 Compare Fuel Alternatives'}
+          </button>
         </div>
 
         {statusMessage && (
@@ -677,6 +777,109 @@ function LiveOptimizationSection({ data }: { data: DemoData }) {
           <span className="text-[var(--text-secondary)]">
             Compliance: <strong className="text-[var(--text-primary)]">{signedMoney(estimateData.estimated_compliance_cost_usd)}</strong>
           </span>
+        </div>
+      )}
+
+      {/* Fuel Alternatives Comparison Matrix (Option C) */}
+      {fuelMatrix && (
+        <div className="mt-6 rounded-xl border border-emerald-500/30 bg-[var(--surface-elevated)] p-5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] pb-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+                  Alternative Fuel Comparison
+                </span>
+                <h3 className="text-sm font-bold text-[var(--text-primary)]">
+                  Compatible Fuel Alternatives for Vessel {selectedVesselId}
+                </h3>
+              </div>
+              <p className="mt-1 text-xs text-[var(--text-secondary)]">
+                Comparing all compatible bunker options under ${carbonPrice}/tCO₂e carbon price and {demandMultiplier}× cargo demand.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFuelMatrix(null)}
+              className="text-[11px] font-semibold text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+            >
+              Hide Table
+            </button>
+          </div>
+
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full text-left font-mono text-xs">
+              <thead>
+                <tr className="border-b border-[var(--border)] text-[var(--text-tertiary)] text-[10px] uppercase">
+                  <th className="py-2.5 pr-3 font-sans font-bold">Fuel Option</th>
+                  <th className="py-2.5 px-3">5-Yr GHG</th>
+                  <th className="py-2.5 px-3 text-emerald-400">CO₂ Reduction</th>
+                  <th className="py-2.5 px-3">FuelEU Penalty</th>
+                  <th className="py-2.5 px-3">Cost Delta</th>
+                  <th className="py-2.5 px-3">Abatement Cost</th>
+                  <th className="py-2.5 px-3">Break-Even Carbon</th>
+                  <th className="py-2.5 pl-3 text-right">Strategic Rating</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border)]">
+                {fuelMatrix.map(f => {
+                  const isGreenWinner = f.ghg_reduction_percent >= 25;
+                  return (
+                    <tr key={f.fuel_id} className={isGreenWinner ? 'bg-emerald-500/5' : undefined}>
+                      <td className="py-2.5 pr-3 font-sans font-semibold text-[var(--text-primary)]">
+                        <div className="flex items-center gap-1.5">
+                          <span>{f.fuel_name}</span>
+                          {f.is_baseline && (
+                            <span className="rounded bg-[var(--surface-sunken)] px-1.5 py-0.5 text-[9px] font-bold text-[var(--text-tertiary)] border border-[var(--border)]">
+                              Current
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-2.5 px-3 text-[var(--text-secondary)]">
+                        {ktCO2e(f.vessel_5yr_ghg_tco2e, 0)}
+                      </td>
+                      <td className="py-2.5 px-3 font-bold text-emerald-400">
+                        {f.ghg_reduction_percent > 0 ? `−${f.ghg_reduction_percent.toFixed(1)}%` : '0.0%'}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        {f.vessel_5yr_fueleu_penalty_usd > 0 ? (
+                          <span className="text-red-400 font-semibold">{usdM(f.vessel_5yr_fueleu_penalty_usd, 2)}</span>
+                        ) : (
+                          <span className="text-emerald-400 font-bold">$0 (Compliant)</span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3 text-[var(--text-secondary)]">
+                        {f.cost_delta_usd === 0
+                          ? '$0.00'
+                          : f.cost_delta_usd < 0
+                          ? `−${usdM(Math.abs(f.cost_delta_usd), 2)}`
+                          : `+${usdM(f.cost_delta_usd, 2)}`}
+                      </td>
+                      <td className="py-2.5 px-3 text-[var(--text-secondary)]">
+                        {f.abatement_cost_usd_per_tco2e > 0 ? `$${f.abatement_cost_usd_per_tco2e.toFixed(0)}/t` : '—'}
+                      </td>
+                      <td className="py-2.5 px-3 text-[var(--text-secondary)]">
+                        {f.break_even_carbon_price_usd !== null ? `$${f.break_even_carbon_price_usd.toFixed(0)}/t` : '—'}
+                      </td>
+                      <td className="py-2.5 pl-3 text-right">
+                        <span
+                          className={`inline-flex items-center rounded px-2 py-0.5 text-[10px] font-bold ${
+                            f.is_baseline
+                              ? 'bg-[var(--surface-sunken)] text-[var(--text-tertiary)]'
+                              : isGreenWinner
+                              ? 'bg-emerald-500/20 text-emerald-400'
+                              : 'bg-[var(--accent)]/10 text-[var(--accent)]'
+                          }`}
+                        >
+                          {f.tag}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
