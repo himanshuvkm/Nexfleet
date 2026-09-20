@@ -1,4 +1,4 @@
-"""Fuel-consumption residual predictors (PS Objective 1 / experiment B1).
+"""Fuel-consumption residual predictors (Objective 1 / experiment B1).
 
 Four `FuelModel`-conformant arms, matching PLAN.md's own B1 comparator
 table (physics baseline, tensor-train residual, LightGBM, plain MLP):
@@ -361,7 +361,7 @@ class QuantumInspiredNeuralResidualModel:
     optimized via Quantum-Inspired Evolutionary Parameter Search (QEPS) with
     quantum rotation gates and fast gradient refinement.
 
-    Implements the SIH Objective 1 quantum-inspired predictive arm:
+    Implements the Objective 1 quantum-inspired predictive arm:
     - Input features from `FeatureEncoder`
     - Parameter search in quantum rotation angles theta in [-pi, pi]
     - Quantum rotation gate updates U(delta theta) towards the elite individual

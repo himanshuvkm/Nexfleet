@@ -1,6 +1,6 @@
 # NexFleet — frontend-claude
 
-SIH26138 presentation build. Fork of `frontend-reimagined`, restructured so the
+NexFleet presentation build. Fork of `frontend-reimagined`, restructured so the
 strongest measured results lead and the supporting detail sits one layer down.
 
 ```bash

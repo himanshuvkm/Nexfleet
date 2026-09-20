@@ -1,4 +1,4 @@
-"""Tests for the fuel-consumption residual predictors (PS Objective 1 /
+"""Tests for the fuel-consumption residual predictors (Objective 1 /
 experiment B1)."""
 
 from __future__ import annotations

@@ -1,4 +1,4 @@
-"""Fuel-consumption prediction benchmark (PS Objective 1 / experiment B1).
+"""Fuel-consumption prediction benchmark (Objective 1 / experiment B1).
 
 Physics baseline vs. LightGBM vs. MLP vs. tensor-train residual, leave-one-
 vessel-out cross-validated on synthetic telemetry (`nexfleet.optimization.

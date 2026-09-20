@@ -1,16 +1,16 @@
 # NEXFLEET 2.0: 5-MEMBER PARALLEL IMPLEMENTATION PLAN
-## Definitive Conflict-Free Modular Engineering, Interface Freeze & SIH Research Execution Blueprint
+## Definitive Conflict-Free Modular Engineering, Interface Freeze & Research Execution Blueprint
 
 **Document Status:** Approved Parallel Implementation Contract (Single Source of Truth)  
 **Parent Document:** [`NEXFLEET_MASTER_RESEARCH_AND_PRODUCT_PLAN.md`](file:///c:/Users/Akshat/Downloads/Projects/Nexfleet/NEXFLEET_MASTER_RESEARCH_AND_PRODUCT_PLAN.md)  
-**SIH Problem Statement Alignment:** SIH26138 (Quantum-Inspired Prediction & Optimization)  
+**Project Track:** Earth Forward — Quantum-Inspired Green Fleet Optimization  
 **Contract Version:** `v1.0.0-FROZEN`  
 
 ---
 
 # 1. Executive Summary & Team Roles Matrix
 
-To enable 5 developers to work concurrently with zero merge conflicts, zero architectural collisions, and strict SIH compliance, all project responsibilities, files, schemas, and integration milestones are partitioned with mathematical precision.
+To enable 5 developers to work concurrently with zero merge conflicts, zero architectural collisions, and strict project compliance, all project responsibilities, files, schemas, and integration milestones are partitioned with mathematical precision.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -265,7 +265,7 @@ class TripartiteScorecard(BaseModel):
 
 ## MEMBER 1: Quantum-Inspired Fuel Prediction Lead
 
-### 1. Primary SIH Responsibility
+### 1. Primary Responsibility
 Member 1 owns the **Quantum-Inspired Fuel Consumption Prediction System** and all benchmark predictors. The predictor must not be a black box; it must feature a genuine quantum-inspired parameter/representation architecture combined with hydrodynamic physics.
 
 ### 2. Quantum-Inspired Prediction Technical Architecture
@@ -288,7 +288,7 @@ Member 1 will implement and benchmark **5 distinct, separately identifiable pred
 * **Read-Only:** `src/nexfleet/schema/contracts.py`, `src/nexfleet/fleet/loader.py`.
 * **Strictly Forbidden:** Optimization solver files (`solver.py`, `qiea_solver.py`), FastAPI routes, frontend files.
 
-### 4. Acceptance Criteria & SIH Deliverable
+### 4. Acceptance Criteria & Core Deliverable
 * Quantum-Inspired Residual Predictor (`qnn_residual` / `tt_svd`) achieves $\le 2.5\%$ MAPE on 4,000 synthetic operational samples under 10-Fold Leave-One-Vessel-Out (LOVO) cross-validation.
 * `scripts/benchmark_fuel_predictor.py` outputs an automated markdown comparison table covering all 5 arms.
 
@@ -499,9 +499,9 @@ Each checkpoint acts as a mandatory gate before advancing to the next developmen
 
 ---
 
-# 9. SIH Acceptance & Research Integrity Criteria
+# 9. Acceptance & Research Integrity Criteria
 
-To achieve maximum scoring from the SIH evaluation committee, the final submission must satisfy these strict requirements:
+To achieve maximum scoring from the evaluation committee, the final submission must satisfy these strict requirements:
 
 * [x] **Demonstrable Quantum-Inspired Prediction:** Both Tensor-Train SVD and QNN/QEPS residual prediction models are functional, benchmarked, and LOVO cross-validated.
 * [x] **Demonstrable Quantum-Inspired Optimization:** QIEA qudit algorithm with rotation gates and Boltzmann initialization operates cleanly.

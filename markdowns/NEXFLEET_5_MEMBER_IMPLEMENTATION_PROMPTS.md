@@ -46,7 +46,7 @@ EXACT ASSIGNED TASKS:
 3. [MANDATORY] Add Residual Confidence Intervals:
    - Implement `predict_with_intervals(vessel, fleet, year, speed_knots, fuel_id, route_id) -> tuple[float, float, float]` returning `(predicted_tonnes, lower_bound_95, upper_bound_95)` based on leave-one-vessel-out residual standard error.
 4. [RECOMMENDED / OPTIONAL RESEARCH] Implement QNN / QEPS Residual Model:
-   - Implement `QuantumInspiredNeuralResidualModel`: A compact 2-layer residual neural regressor whose weights or initial basis angles are optimized via Quantum-Inspired Evolutionary Parameter Search (rotation gates) to demonstrate quantum-inspired prediction as requested by SIH Objective 1.
+   - Implement `QuantumInspiredNeuralResidualModel`: A compact 2-layer residual neural regressor whose weights or initial basis angles are optimized via Quantum-Inspired Evolutionary Parameter Search (rotation gates) to demonstrate quantum-inspired prediction as requested by Objective 1.
 5. [MANDATORY] Update Prediction Benchmark Suite:
    - Ensure `scripts/benchmark_fuel_predictor.py` cleanly runs and benchmarks all available prediction arms across 10-fold LOVO cross-validation.
 
@@ -374,7 +374,7 @@ $$\text{Member 1 (ML)} \longrightarrow \text{Member 2 (Baseline)} \longrightarro
 * **No Rebuilding Completed Code:** Reuse `PhysicsFuelModel`, GA operators, QIEA qudits, FuelEU pooling, and compliance ledgers as-is.
 
 ### 4. Definition of Done for Final Release
-The project is complete and ready for SIH presentation when:
+The project is complete and ready for final presentation when:
 1. `pytest tests/` runs 100% green across all unit and research integration tests.
 2. `python scripts/build_demo_data.py` runs end-to-end, generating dynamic data from real algorithms.
 3. `npm run build` compiles with zero errors.

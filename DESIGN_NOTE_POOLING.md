@@ -68,13 +68,13 @@ This works because of a fact about how the optimizer is already structured (§5 
 
 ## 4. Folding in fleet composition
 
-The PS asks for "optimal mix of vessel types, capacities" — the case study as specified fixes the 24-vessel fleet and optimizes deployment only (route, speed, fuel, shore-power, retrofit timing per existing vessel). This under-covers that clause of the PS.
+Our specifications include "optimal mix of vessel types, capacities" — the case study as specified fixes the 24-vessel fleet and optimizes deployment only (route, speed, fuel, shore-power, retrofit timing per existing vessel). This under-covers that aspect of the objective.
 
-**Cost of adding it properly.** A full newbuild/capacity design search — continuous vessel size, engine design, capital structure — is out of scope for three weeks and arguably out of scope for the PS's intent, which reads as being about deployment mix more than shipyard design.
+**Cost of adding it properly.** A full newbuild/capacity design search — continuous vessel size, engine design, capital structure — is out of scope for three weeks and arguably out of scope for our operational intent, which reads as being about deployment mix more than shipyard design.
 
 **The minimal honest version, and its cost.** Add a small **fleet-composition site per year** — not per vessel — carrying a discrete decision from a small menu (e.g., charter-in a feeder-class slot, charter-in a deep-sea-class slot, retire a vessel, trigger a newbuild-class placeholder, no change). This is a *year-indexed*, fleet-level site, not a per-vessel one: it adds 5 new sites (one per year of the 2026–2030 horizon) to the existing 120 (vessel × year) sites — a 4% growth in site count — with a small local dimension (order 6, the size of the composition menu) compared to the roughly 200-state local dimension already carried by each vessel-year site. This is tractable to add within Track S without materially changing the compute profile assessed in §6.1.
 
-**Recommendation:** add this minimal composition layer to Phase 3's build scope, not as a stretch item. It is the difference between honestly covering the PS's "optimal mix of vessel types, capacities" clause and merely asserting we do. Do not attempt a continuous or capital-design-level composition search; that is Track F, alongside the real-options retrofit-timing work already deferred there.
+**Recommendation:** add this minimal composition layer to Phase 3's build scope, not as a stretch item. It is the difference between honestly covering the "optimal mix of vessel types, capacities" clause and merely asserting we do. Do not attempt a continuous or capital-design-level composition search; that is Track F, alongside the real-options retrofit-timing work already deferred there.
 
 ## 5. What this note does not resolve
 

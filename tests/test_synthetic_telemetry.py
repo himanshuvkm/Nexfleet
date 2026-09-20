@@ -1,5 +1,4 @@
-"""Tests for the synthetic fuel-consumption telemetry generator (PS
-Objective 1 / experiment B1's data substitute — see synthetic_telemetry.py's
+"""Tests for the synthetic fuel-consumption telemetry generator (Objective 1 / experiment B1's data substitute — see synthetic_telemetry.py's
 module docstring for why the ground truth is synthetic)."""
 
 from __future__ import annotations

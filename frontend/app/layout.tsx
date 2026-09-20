@@ -16,7 +16,7 @@ const geistSans = Geist({
 export const metadata: Metadata = {
   title: "NexFleet — Quantum-Inspired Green Fleet Optimization",
   description:
-    "Fuel consumption prediction and multi-objective green fleet optimization across IMO NZF, CII, FuelEU Maritime and EU ETS, solved with a quantum-inspired evolutionary algorithm. SIH26138 · Egreen Quanta.",
+    "Fuel consumption prediction and multi-objective green fleet optimization across IMO NZF, CII, FuelEU Maritime and EU ETS, solved with a quantum-inspired evolutionary algorithm.",
 };
 
 // Sets the .dark class before React hydrates, reading the same localStorage
@@ -44,7 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Navbar />
             <div className="flex-1 flex flex-col">{children}</div>
             <footer className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] bg-[var(--surface-sunken)] px-6 py-4 text-xs text-[var(--text-tertiary)]">
-              <div className="font-mono">NEXFLEET · SIH26138 · EGREEN QUANTA</div>
+              <div className="font-mono">NEXFLEET · MARITIME INTELLIGENCE</div>
               <div className="flex flex-wrap items-center gap-4">
                 <Link href="/guide" className="font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:underline">
                   How to read this platform

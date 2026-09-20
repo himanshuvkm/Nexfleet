@@ -80,7 +80,7 @@ flowchart TD
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
 │                                 TASK CLASSIFICATION BREAKDOWN                                    │
 ├──────────────────────────────────────────┬───────────────────────────────────────────────────────┤
-│ MANDATORY SIH RESEARCH & PRODUCT CORE    │ OPTIONAL ADVANCED EXTENSIONS (Non-Blocking)           │
+│ MANDATORY RESEARCH & PRODUCT CORE        │ OPTIONAL ADVANCED EXTENSIONS (Non-Blocking)           │
 ├──────────────────────────────────────────┼───────────────────────────────────────────────────────┤
 │ • Physics Admiralty Baseline             │ • Quantum Neural Parameter Optimization (QEPS/QNN)    │
 │ • Tensor-Train SVD Low-Rank Predictor    │ • Exact MILP Linearized Sub-Solver Benchmark          │
@@ -277,5 +277,5 @@ def generate_pareto_frontier(
 Once all 5 members complete their respective deliverables:
 1. **Zero Disconnected Code:** Predictor models feed the live objective; baseline evaluator provides the reference zero-point; solvers produce true multi-objective Pareto frontiers.
 2. **Zero Mocked Demonstrations:** Recommendation cards (*Cheapest, Balanced, Greenest*) and savings waterfalls are computed dynamically from real mathematical models.
-3. **Publication-Grade Research:** Automated benchmark suites provide reproducible, multi-seed statistical evidence for SIH evaluation.
+3. **Publication-Grade Research:** Automated benchmark suites provide reproducible, multi-seed statistical evidence for formal evaluation.
 4. **Actionable Commercial Deliverable:** Shipowners can input constraints, evaluate their status quo, compare classical and quantum-inspired plans, and export an executable voyage dispatch schedule.

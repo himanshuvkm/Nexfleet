@@ -155,7 +155,7 @@ The following Python computational modules and frontend views are fully implemen
 
 ---
 
-### 13. Which Features Are Missing According to the SIH Problem Statement?
+### 13. Which Features Are Missing According to the Core Technical Requirements?
 * **None.** Physics and ML prediction, multi-fuel bunkering pathways, regulatory compliance (FuelEU, EU ETS, CII, NZF), multi-objective optimization, and operational dispatch exports are completely implemented and verified.
 
 ---

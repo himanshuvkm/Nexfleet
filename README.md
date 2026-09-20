@@ -1,8 +1,9 @@
-﻿# NexFleet 2.0 🚢⚡
+# NexFleet 2.0 🚢⚡
 
-**Quantum-Inspired Green Fleet Optimization & Regulatory Uncertainty Risk Atlas**
+**Quantum-Inspired Green Fleet Optimization & Climate Regulatory Risk Atlas**  
+*Earth Forward — Accelerating Maritime Decarbonization & Clean Ocean Logistics*
 
-NexFleet is a maritime decision-support platform for fleet operators and charterers to optimize fleet deployment, fuel selection, cruising speed, and regulatory compliance across four overlapping maritime regimes:
+Maritime shipping powers over 80% of global trade but accounts for nearly 3% of worldwide greenhouse gas emissions (~1 billion tonnes of CO₂ annually), burning heavy bunker fuel oil. As our planet faces unprecedented environmental challenges, NexFleet delivers a high-impact technological solution: a quantum-inspired decision-support platform that empowers commercial fleet operators and charterers to aggressively cut voyage fuel burn, transition to clean alternative fuels (biofuels, LNG, methanol), and optimize compliance across four major international climate regimes:
 
 - **IMO CII** (Carbon Intensity Indicator)
 - **IMO Net-Zero Framework (NZF)**

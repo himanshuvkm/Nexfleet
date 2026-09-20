@@ -2,11 +2,11 @@
 
 **Quantum-Inspired Fuel Prediction and Green Fleet Optimization Under Regulatory Uncertainty**
 
-Problem Statement SIH26138 · Egreen Quanta · Software · Smart Vehicles
+Earth Forward · Maritime Decarbonization & Green Fleet Optimization
 
 **Document version 1.2** — this is now the frozen internal build contract. After this patch, the only permitted changes to this document are (a) real experiment outputs replacing [TARGET] labels as they are produced, and (b) any §3.2 sentence marked for softening by the Stage 2 pooling-locality design note, once written.
 
-**Post-freeze update:** Stage 2's design note (see `Stage2_Pooling_Locality_Design_Note.md`) is now written and accepted, and applies the one permitted category-(b) edit: §3.2's bond-dimension claim has been narrowed to cover banking only, with pooling explicitly moved to a particle-level hybrid enforcement. §5.4's decision-variable list has been extended with the minimal fleet-composition addition the note recommends in its §4, to honestly cover the PS's "optimal mix of vessel types, capacities" clause. No other document content changed in this update.
+**Post-freeze update:** Stage 2's design note (see `Stage2_Pooling_Locality_Design_Note.md`) is now written and accepted, and applies the one permitted category-(b) edit: §3.2's bond-dimension claim has been narrowed to cover banking only, with pooling explicitly moved to a particle-level hybrid enforcement. §5.4's decision-variable list has been extended with the minimal fleet-composition addition the note recommends in its §4, to honestly cover the "optimal mix of vessel types, capacities" specification. No other document content changed in this update.
 
 **Changelog from v1.1 — nine patches (second-review pass, gated for build), all content outside these points is unchanged:**
 1. Regime count fixed from three to four throughout: §3.4 ("outside all three" → "all four"), §5.4 Band C ("None of the three" → "None of the four"), Phase 4 deliverable ("excluded from all three regimes" → "all four regimes," plus an added FuelEU/EU ETS stacking test), §2 mapping table (EU ETS added to the listed regimes). Grepped the full document for "three" co-occurring with "regime" — zero remaining instances.
@@ -86,11 +86,11 @@ That last row is the product.
 
 ---
 
-# 2. How This Addresses the Problem Statement
+# 2. Key Objectives & Architecture Mapping
 
-SIH26138 lists five objectives. Mapping is direct and each row names the section that delivers it.
+The framework addresses five central technical and environmental objectives:
 
-| PS Objective | NexFleet component | Where |
+| Core Objective | NexFleet Component | Where Delivered |
 |---|---|---|
 | Accurate quantum-inspired models for fuel consumption prediction across vessel types and conditions | Admiralty physics baseline + tensor-train residual regressor, trained distributionally (quantiles, not point estimates) | §3.2, §5 Phase 2 |
 | Quantum metaheuristic optimization for optimal mix of vessel types, capacities, cruising speeds | Born-machine decision state + annealed Sequential Monte Carlo over the joint configuration space | §3.3, §5 Phase 3 |
@@ -98,7 +98,7 @@ SIH26138 lists five objectives. Mapping is direct and each row names the section
 | Operational reliability, cargo demand satisfaction, emission-regulation compliance | Algebraic projection operators for hard constraints; compliance ledger carried in the tensor bond; CII, FuelEU, EU ETS, and NZF regimes modelled separately with correct scope | §3.4, §5 Phase 4 |
 | Benchmark against conventional prediction and optimization on accuracy, convergence, solution quality, scalability | Six-experiment battery B1–B6 against GA, SA, CEM, PSO, Han–Kim QIEA, exact MILP, LightGBM, and physics-only baselines, 30 seeds, Wilcoxon with Holm correction | §5 Phase 5 |
 
-The PS also asks for scenario analysis for alternative fuels. Our scenario module goes further than fuel-price scenarios: it treats the **regulatory outcome itself** as a scenario axis, which is the axis that actually dominates alternative-fuel economics.
+Our framework also incorporates comprehensive scenario analysis for alternative fuels. Our scenario module goes further than fuel-price scenarios: it treats the **regulatory outcome itself** as a scenario axis, which is the axis that actually dominates alternative-fuel economics.
 
 ---
 
@@ -222,7 +222,7 @@ Deliberately **not** used: any quantum SDK submitting toy circuits. See §7.4.
 
 ## 5.1 Two tracks
 
-The stated PS deadline is **20 September 2026**. Assuming that is the idea-submission gate and the grand finale follows later, the plan splits:
+To ensure disciplined engineering and rapid delivery, the development plan splits into two focused execution tracks:
 
 - **Track S (Days 1–21):** everything needed for submission — a working thin slice end-to-end plus the deck. Nothing here is optional.
 - **Track F (post-submission):** depth, scale, and polish for the finale.
@@ -284,7 +284,7 @@ Run the segmented Indian fleet (§5.4). Build the React interface: fleet map, Pa
 
 ### Phase 7 — Quantum resource estimate, packaging, deck (Days 18–21)
 
-Produce the honest resource estimate (§7.4). Write the deck money-first. Record a two-minute screencast. Freeze `make demo`. **Also produce a trimmed submission document** — this full document is the internal build contract; the version submitted to SIH should be a shorter document plus deck derived from it, not this file verbatim. Noted here as a Phase 7 task so it is not lost; not attempted in this patch.
+Produce the honest resource estimate (§7.4). Write the deck money-first. Record a two-minute screencast. Freeze `make demo`. **Also produce a trimmed submission document** — this full document is the internal build contract; the version submitted should be a shorter document plus deck derived from it, not this file verbatim. Noted here as a Phase 7 task so it is not lost; not attempted in this patch.
 
 **Deliverable:** submission package.
 
@@ -295,7 +295,7 @@ Multi-stage stochastic retrofit timing as a genuine real-option valuation; hull-
 **Also Track F, deferred deliberately rather than omitted by oversight:**
 
 - **A second uncertainty leg for fuel-price spread**, alongside the regulatory leg `r`, with mutual information `I(r ; q)` computed between the two — a sentence like *"your methanol bet is three times more sensitive to fuel-price spread than to the vote"* is cheap once the first leg exists, but it is one more axis to validate under the same stability protocol as §8.3, and it does not belong in a three-week build.
-- **"The India Brief"** — a named one-page output from Policy Mode: what each of the five live proposals costs the Indian fleet archetype, specifically. This lands directly on the PS's national-relevance dimension and is a natural finale-week item **if shortlisted** — it costs roughly a day once Policy Mode exists, and a day is worth spending only once there is a finale to spend it on.
+- **"The India Brief"** — a named one-page output from Policy Mode: what each of the five live proposals costs the Indian fleet archetype, specifically. This lands directly on the project's real-world relevance dimension and is an impactful deliverable — it costs roughly a day once Policy Mode exists.
 
 ## 5.4 The case study, specified
 
@@ -309,7 +309,7 @@ Three compliance bands, which is the entire point:
 | B — Non-EU deep-sea | 6 deep-sea ≥5,000 GT, India–Gulf / Southeast Asia | CII + NZF only |
 | C — Coastal feeder | 8 vessels on Indian coastal routes | **None of the four** |
 
-Decision variables per vessel-year: route assignment, cruising speed (8 bands), fuel (HFO+scrubber, VLSFO, MGO, LNG, B30 blend, methanol), shore-power flag, retrofit year. Fleet-level: pool membership, bank/borrow election. **Fleet-composition, per year** (added per the Stage 2 design note §4, to honestly cover the PS's "optimal mix of vessel types, capacities" clause rather than only optimizing deployment of a fixed fleet): a small discrete menu — charter-in a feeder-class slot, charter-in a deep-sea-class slot, retire a vessel, trigger a newbuild-class placeholder, no change. This is a year-indexed, fleet-wide site (5 sites added to the existing 120), not a per-vessel multiplier, and does not materially change the compute profile in §6.1.
+Decision variables per vessel-year: route assignment, cruising speed (8 bands), fuel (HFO+scrubber, VLSFO, MGO, LNG, B30 blend, methanol), shore-power flag, retrofit year. Fleet-level: pool membership, bank/borrow election. **Fleet-composition, per year** (added per the Stage 2 design note §4, to honestly cover the "optimal mix of vessel types, capacities" requirement rather than only optimizing deployment of a fixed fleet): a small discrete menu — charter-in a feeder-class slot, charter-in a deep-sea-class slot, retire a vessel, trigger a newbuild-class placeholder, no change. This is a year-indexed, fleet-wide site (5 sites added to the existing 120), not a per-vessel multiplier, and does not materially change the compute profile in §6.1.
 
 **Regulatory leg, K = 5**, grounded in actual live positions [VERIFIED as live proposals]:
 
@@ -323,7 +323,7 @@ These are not invented scenarios. They are the proposals on the table.
 
 ## 5.5 Delivery Table (Expected Deliverables)
 
-The SIH template asks for this as a named table. It is reconciled against the per-phase deliverables stated inline under **Track S, Phases 0–7** above — every row below is produced by exactly one phase named there, and every phase deliverable above appears in exactly one row below. If the two ever disagree, this table is wrong and gets fixed to match the phase deliverables, not the other way round, since the phase list is where the actual build order and acceptance criteria live.
+The delivery template asks for this as a named table. It is reconciled against the per-phase deliverables stated inline under **Track S, Phases 0–7** above — every row below is produced by exactly one phase named there, and every phase deliverable above appears in exactly one row below. If the two ever disagree, this table is wrong and gets fixed to match the phase deliverables, not the other way round, since the phase list is where the actual build order and acceptance criteria live.
 
 | ID | Deliverable | Description | Produced by | Acceptance evidence |
 |---|---|---|---|---|
@@ -413,7 +413,7 @@ If the extraordinary session in October 2026 actually adopts a text, "your plan 
 
 # 8. Strategies for Overcoming Them
 
-**8.1 Scope.** A hard cut-list, agreed on day one and written down: real-options retrofit timing, hull-fouling dynamics, port berth-window coupling, and DMRG sweeps are **all Track F**. Nothing moves from F to S. Phase 4 and Phase 5 are the two phases that must not be compressed, because the compliance ledger is the technical claim and the benchmark battery is an explicit PS requirement.
+**8.1 Scope.** A hard cut-list, agreed on day one and written down: real-options retrofit timing, hull-fouling dynamics, port berth-window coupling, and DMRG sweeps are **all Track F**. Nothing moves from F to S. Phase 4 and Phase 5 are the two phases that must not be compressed, because the compliance ledger is the technical claim and the benchmark battery is an essential research requirement.
 
 If time is lost, it comes out of interface polish in a specific order, not a general one — because the vote slider *is* the product, not decoration around it. **Protected core, never cut:** the vote/carbon-price slider and its exposure/switching-point readout (§3.1, §3.6, §9.3). This is the fifteen-second moment and it must work live. **Degradable, in this order:** first the fleet map (a static screenshot with a caption is an acceptable fallback), then the Pareto explorer (a pre-rendered plot is acceptable). If time is still short after that, the honest fallback is a smaller case study (N=12) with the full method rather than a large one with a partial method.
 
@@ -564,6 +564,6 @@ The IMO regulatory position is live and moving. The NZF adoption session reconve
 - **Prior tensor-network or quantum-inspired-computing work.** A repo, coursework project, or paper touching MPS/tensor-train methods, DMRG, tensor decomposition, or (failing that) any hands-on quantum-computing coursework. If nobody on the team has this, say so plainly rather than implying otherwise — it's a real gap and the panel may test it directly (§7.4).
 - **SMC, sampling, or Monte Carlo methods.** A repo or coursework project using particle filters, MCMC, simulated annealing, or any sampling-based optimizer — this is the more learnable half of the optimizer core and is worth having even if the tensor experience is thin.
 - **Operations research / combinatorial optimization.** Any MILP, GA, or metaheuristic implementation — course project, Kaggle-style competition, or internship work. This directly supports the classical-baseline benchmarking in §5 Phase 5 and Stage 2's fallback design.
-- **Maritime, logistics, or regulatory-compliance domain exposure.** Not required, but if anyone has it — shipping internship, logistics coursework, or even close reading of the regulation texts already done for this document — it should be named, since panels weight domain grounding highly for an applied PS like this one.
+- **Maritime, logistics, or regulatory-compliance domain exposure.** Not required, but if anyone has it — shipping internship, logistics coursework, or even close reading of the regulation texts already done for this document — it should be named, since panels weight domain grounding highly for an applied real-world project like this one.
 
 Fill in names, roles, and evidence, then this section is complete. Do not fabricate prior work that doesn't exist — an honest "this is our stretch area, here's our mitigation" (pointing back to Stage 3's BUILD_ORDER de-risking week) is more credible to a panel than an inflated credentials list, and inconsistent with the document's own labelling discipline if overstated.

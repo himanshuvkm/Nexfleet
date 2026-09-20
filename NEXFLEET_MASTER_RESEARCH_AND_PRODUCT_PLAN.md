@@ -1,9 +1,9 @@
 # NEXFLEET 2.0: MASTER RESEARCH AND PRODUCT PLAN
 ## Quantum-Inspired Fuel Consumption Prediction and Green Fleet Optimization Under Regulatory Uncertainty
 
-**Document Status:** Definitive Master Architecture & Project Execution Plan (Single Source of Truth)  
-**SIH Problem Statement:** SIH26138 | **Organization:** Egreen Quanta | **Theme:** Smart Vehicles / Software  
-**Primary Domain:** Maritime Green Fleet Optimization, Decarbonization Policy & Operational Decision Support  
+**Document Status:** Master Architecture & Project Execution Plan  
+**Hackathon Track:** Earth Forward — Climate Action & Maritime Decarbonization  
+**Primary Domain:** Green Fleet Optimization, Maritime Environmental Policy & Operational Decision Support  
 
 ---
 
@@ -11,7 +11,7 @@
 
 NexFleet 2.0 is an enterprise-grade, research-grounded decision support platform developed for commercial shipowners, charterers, and fleet managers. It addresses the simultaneous challenges of **predicting voyage fuel consumption under dynamic operational conditions** and **optimizing multi-year fleet deployment, speed scheduling, fuel selection, and regulatory compliance** across overlapping international environmental mandates (IMO DCS/CII, EU ETS Maritime, FuelEU Maritime, and the IMO Net-Zero Framework).
 
-The project directly fulfills both core pillars mandated by SIH Problem Statement SIH26138:
+The project directly fulfills both core research and product pillars:
 1. **Quantum-Inspired Fuel Consumption Prediction:** Hybrid physics-informed predictive models combining classical hydrodynamic baselines with Quantum-Inspired Low-Rank Tensor Networks (Tensor-Train SVD) and Gradient-Boosted Tree residuals.
 2. **Quantum-Inspired Multi-Objective Green Fleet Optimization:** A Quantum-Inspired Evolutionary Algorithm (QIEA) with categorical qudit state representation, Boltzmann mean-field initialization, and Q-gate rotation dynamics, benchmarked against rigorous classical baselines (GA, PSO, and exact MILP sub-solvers).
 
@@ -49,9 +49,11 @@ The project directly fulfills both core pillars mandated by SIH Problem Statemen
 ### 1. Project Title
 **NexFleet 2.0:** Quantum-Inspired Fuel Consumption Prediction and Multi-Objective Green Fleet Optimization Under Regulatory Uncertainty.
 
-### 2. SIH Problem Statement Alignment (SIH26138)
-The official SIH problem statement defines the core challenge:
-> *"Develop a quantum-inspired optimization and prediction framework for green fleet management. The framework will predict fuel consumption under varying operational conditions and optimize fleet deployment decisions, including the selection of vessel types, capacities, cruising speeds, and the integration of alternative fuels (LNG, methanol, hydrogen, ammonia) and shore power solutions. The goal is to minimize fuel consumption and lifecycle emissions while satisfying cargo demand, schedule reliability, and operational constraints."*
+### 2. Environmental Challenge & Project Mission
+Maritime logistics carries over 80% of global trade and generates approximately 3% of worldwide greenhouse gas emissions (~1 billion tonnes of CO₂ annually), burning carbon-heavy bunker fuels. As our planet faces unprecedented climate challenges, technological solutions that accelerate maritime decarbonization while preserving global supply-chain reliability are paramount.
+
+NexFleet 2.0 tackles this planetary challenge head-on:
+> *"Develop a quantum-inspired optimization and prediction framework for green fleet management. The framework predicts voyage fuel consumption under varying operational conditions and optimizes fleet deployment decisions, including the selection of vessel types, capacities, cruising speeds, and the integration of alternative fuels (LNG, methanol, biofuels) and shore power solutions. The goal is to minimize fuel consumption and lifecycle emissions while satisfying cargo demand, schedule reliability, and operational constraints."*
 
 NexFleet 2.0 maps one-to-one to every stated objective:
 * **Objective 1 (Prediction):** Admiralty hydrodynamic power physics + Quantum-Inspired Tensor-Train (TT-SVD) residual regressor and classical ML baselines.
@@ -219,7 +221,7 @@ flowchart TD
 # PART 4: Quantum-Inspired Fuel Consumption Prediction
 
 ### 1. Architectural Justification & Role
-The SIH problem statement mandates accurate, quantum-inspired fuel consumption prediction across vessel types and operational conditions. In NexFleet 2.0, fuel prediction is structured as a **physics-informed hybrid learning system**:
+The framework mandates accurate, quantum-inspired fuel consumption prediction across vessel types and operational conditions. In NexFleet 2.0, fuel prediction is structured as a **physics-informed hybrid learning system**:
 $$\text{Fuel Consumption (tonnes)} = M_{\text{physics}}(V, \Delta, \text{Fuel}, \text{Route}) \times \left(1 + \delta_{\text{QI}}(V, \text{Vessel}, \text{Route}, \text{Year})\right)$$
 
 Where:

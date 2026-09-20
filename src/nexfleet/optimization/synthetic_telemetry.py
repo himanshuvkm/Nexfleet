@@ -1,4 +1,4 @@
-"""Synthetic fuel-consumption telemetry generator (PS Objective 1 / PLAN.md
+"""Synthetic fuel-consumption telemetry generator (Objective 1 / PLAN.md
 §5 Phase 2's data pipeline).
 
 **No real telemetry exists in this repo.** PLAN.md's Phase 1 (THETIS-MRV /

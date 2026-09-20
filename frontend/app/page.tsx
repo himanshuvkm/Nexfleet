@@ -24,7 +24,7 @@ function HomeContent({ data }: { data: DemoData }) {
 
   return (
     <main className={styles.overview}>
-      <div className={styles.masthead}><span>Fleet intelligence / Overview</span><span>SIH26138 · Egreen Quanta</span></div>
+      <div className={styles.masthead}><span>Fleet intelligence / Overview</span><span>Maritime Decarbonization Intelligence</span></div>
       <section className={styles.hero} aria-labelledby="overview-title">
         <header className={styles.intro}>
           <p className={styles.eyebrow}>Quantum-inspired green fleet optimization</p>
