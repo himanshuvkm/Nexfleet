@@ -276,7 +276,3 @@ npm run build
 - **IMO Operational CII:** MEPC.336(76), MEPC.337(76), MEPC.338(76), and MEPC.339(76) Guidelines.
 - **EU ETS Maritime:** Directive (EU) 2023/959 extending the emissions trading system to maritime transport.
 - **IMO Net-Zero Framework:** 2023 IMO Strategy on Reduction of GHG Emissions from Ships (Resolution MEPC.377(80)).
-- **Project Documentation:**
-  - [Master Research & Product Plan](NEXFLEET_MASTER_RESEARCH_AND_PRODUCT_PLAN.md)
-  - [Current Technical Implementation Report](NEXFLEET_CURRENT_IMPLEMENTATION_REPORT.md)
-  - [Quantum-Inspired Decarbonization Research Paper](Quantum_inspired_fuel_consumption_prediction_and_green_fleet_optimization.md)
