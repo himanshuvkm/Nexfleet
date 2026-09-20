@@ -37,77 +37,34 @@ function HomeContent({ data }: { data: DemoData }) {
       {/* SECTION A: Hero / Introduction */}
       <section className="relative overflow-hidden border-b border-[var(--border)] bg-[var(--surface-elevated)] px-4 py-12 md:py-16">
         <div className="mx-auto max-w-[1152px]">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-            <div className="max-w-2xl space-y-4">
-              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-500">
-                <LeafIcon size={16} weight="fill" /> Earth Forward · Maritime Decarbonization Intelligence
-              </div>
-
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-[var(--text-primary)] leading-[1.15]">
-                Build a Greener Fleet Strategy.
-              </h1>
-
-              <p className="text-base sm:text-lg leading-relaxed text-[var(--text-secondary)]">
-                NexFleet 2.0 empowers ocean fleet operators to cut carbon emissions, transition to sustainable alternative fuels, and comply with global maritime climate regulations with zero guesswork.
-              </p>
-
-              <div className="flex flex-wrap items-center gap-3 pt-2">
-                <a
-                  href="#decision-tool"
-                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-emerald-500 active:scale-[0.98]"
-                >
-                  <SparkleIcon size={18} weight="fill" />
-                  <span>Launch Green Decision Engine</span>
-                </a>
-                <Link
-                  href="/plans"
-                  className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm font-semibold text-[var(--text-primary)] transition-all hover:bg-[var(--surface-sunken)]"
-                >
-                  <span>Explore Strategic Plans</span>
-                  <ArrowRightIcon size={16} />
-                </Link>
-              </div>
+          <div className="max-w-3xl space-y-4">
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-500">
+              <LeafIcon size={16} weight="fill" /> Earth Forward · Maritime Decarbonization Intelligence
             </div>
 
-            {/* Hero Quick Proof Card */}
-            <div className="w-full md:w-80 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
-                <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-tertiary)]">
-                  Proven Decarbonization
-                </span>
-                <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
-                  5-Year Fleet Impact
-                </span>
-              </div>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-[var(--text-primary)] leading-[1.15]">
+              Build a Greener Fleet Strategy.
+            </h1>
 
-              <div>
-                <div className="flex items-baseline gap-2">
-                  <span className="font-mono text-4xl font-extrabold text-emerald-400">
-                    {cut ? signedPct(cut.deltaFraction) : '−30.1%'}
-                  </span>
-                  <span className="text-xs text-[var(--text-secondary)] font-medium">Lifecycle GHG</span>
-                </div>
-                <p className="mt-1 text-xs text-[var(--text-secondary)]">
-                  {cut && baseline?.metrics && cut.point.metrics
-                    ? `${ktCO2e(Math.abs(cut.deltaTco2e))} carbon abated vs baseline.`
-                    : '164k tonnes CO₂e avoided across 8 container & cargo vessels.'}
-                </p>
-              </div>
+            <p className="text-base sm:text-lg leading-relaxed text-[var(--text-secondary)]">
+              NexFleet empowers ocean fleet operators to cut carbon emissions, transition to sustainable alternative fuels, and comply with global maritime climate regulations with zero guesswork.
+            </p>
 
-              <div className="space-y-2 border-t border-[var(--border)] pt-3 text-xs text-[var(--text-secondary)]">
-                <div className="flex justify-between">
-                  <span>Target Fleet Size:</span>
-                  <strong className="text-[var(--text-primary)] font-mono">{data.fleet.vessels.length} Vessels</strong>
-                </div>
-                <div className="flex justify-between">
-                  <span>Planning Horizon:</span>
-                  <strong className="text-[var(--text-primary)] font-mono">2026–2030</strong>
-                </div>
-                <div className="flex justify-between">
-                  <span>Regulatory Coverage:</span>
-                  <strong className="text-emerald-400 font-mono">FuelEU · CII · NZF · ETS</strong>
-                </div>
-              </div>
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <a
+                href="#decision-tool"
+                className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-emerald-500 active:scale-[0.98]"
+              >
+                <SparkleIcon size={18} weight="fill" />
+                <span>Launch Green Decision Engine</span>
+              </a>
+              <Link
+                href="/plans"
+                className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm font-semibold text-[var(--text-primary)] transition-all hover:bg-[var(--surface-sunken)]"
+              >
+                <span>Explore Strategic Plans</span>
+                <ArrowRightIcon size={16} />
+              </Link>
             </div>
           </div>
         </div>
