@@ -40,9 +40,10 @@ export const Navbar: React.FC = () => {
       <div className="mx-auto flex max-w-[1152px] flex-wrap items-center justify-between gap-x-6 gap-y-0 py-3">
         <Link
           href="/"
-          className="shrink-0 rounded-full font-mono text-sm font-bold tracking-widest text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]"
+          className="shrink-0 flex items-center gap-1.5 rounded-full font-mono text-sm font-bold tracking-widest text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface)]"
         >
-          NEXFLEET
+          <span>NEXFLEET</span>
+          <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-400">2.0</span>
         </Link>
 
         <nav aria-label="Main" className="order-3 flex w-full items-center gap-0.5 overflow-x-auto pt-2 md:order-none md:w-auto md:pt-0">
