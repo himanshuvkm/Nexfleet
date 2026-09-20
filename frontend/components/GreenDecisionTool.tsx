@@ -87,7 +87,7 @@ export function GreenDecisionTool({ data }: Props) {
     setApiError(null);
   };
 
-  // Option C: Compare All Compatible Fuels
+  // Compare All Compatible Fuels
   const handleCompareFuels = async () => {
     setRunningAction('compare_fuels');
     setApiError(null);
@@ -488,7 +488,7 @@ export function GreenDecisionTool({ data }: Props) {
               ) : (
                 <>
                   <ArrowsLeftRightIcon size={16} />
-                  <span>Compare Fuel Alternatives (Option C)</span>
+                  <span>Compare Fuel Alternatives</span>
                 </>
               )}
             </button>
@@ -760,7 +760,7 @@ export function GreenDecisionTool({ data }: Props) {
             <div>
               <div className="flex items-center gap-2">
                 <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-400">
-                  Plan C Intelligence
+                  Multi fuel Intelligence
                 </span>
                 <h3 className="text-sm font-bold text-[var(--text-primary)]">
                   Compatible Fuel Alternatives Matrix for Vessel {selectedVesselId}

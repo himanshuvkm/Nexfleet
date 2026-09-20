@@ -1,218 +1,282 @@
-# NexFleet 2.0 🚢⚡
+<h1 align="center">NexFleet</h1>
 
-**Quantum-Inspired Green Fleet Optimization & Climate Regulatory Risk Atlas**  
-*Earth Forward — Accelerating Maritime Decarbonization & Clean Ocean Logistics*
+<p align="center">
+  <strong>Fleet parameters in. Net-zero maritime strategy out.</strong><br />
+  An intelligent decision-support platform combining physics-informed machine learning with quantum-inspired evolutionary optimization to help ocean fleet operators transition to clean alternative fuels and achieve zero-penalty compliance.
+</p>
 
-Maritime shipping powers over 80% of global trade but accounts for nearly 3% of worldwide greenhouse gas emissions (~1 billion tonnes of CO₂ annually), burning heavy bunker fuel oil. As our planet faces unprecedented environmental challenges, NexFleet delivers a high-impact technological solution: a quantum-inspired decision-support platform that empowers commercial fleet operators and charterers to aggressively cut voyage fuel burn, transition to clean alternative fuels (biofuels, LNG, methanol), and optimize compliance across four major international climate regimes:
-
-- **IMO CII** (Carbon Intensity Indicator)
-- **IMO Net-Zero Framework (NZF)**
-- **EU FuelEU Maritime**
-- **EU ETS** (Emissions Trading System)
-
----
-
-## 📑 Table of Contents
-
-1. [Prerequisites](#️-prerequisites)
-2. [Project Structure](#-project-structure)
-3. [Quick Start (Run the Web App)](#-quick-start-run-the-web-app)
-4. [How to Recompute & Update Data (demo_data.json)](#-how-to-recompute--update-data-demo_datajson)
-5. [Running Benchmarks & Tests](#-running-benchmarks--tests)
-6. [Configuration & Environment Variables](#️-configuration--environment-variables)
-7. [How It Works Under the Hood](#-how-it-works-under-the-hood)
-8. [Troubleshooting](#-troubleshooting)
+<p align="center">
+  <a href="http://localhost:3000"><strong>Try the local web app</strong></a>
+  ·
+  <a href="http://localhost:8000/docs">Interactive API docs (Swagger)</a>
+  ·
+  <a href="#architecture">Architecture Diagram</a>
+  ·
+  <a href="#run-locally-and-reproduce-the-demo">Run locally in 2 minutes</a>
+</p>
 
 ---
 
-## 🛠️ Prerequisites
+## Why NexFleet
 
-Make sure you have the following installed:
+Maritime shipping carries over 80% of global trade but burns heavy fossil bunker fuels, releasing over **1 billion tonnes of CO₂ annually** (~3% of total global greenhouse gas emissions). At the same time, the maritime sector is entering a transformative regulatory era governed by aggressive decarbonization mandates:
 
-| Tool | Minimum Version | Check |
-|---|---|---|
-| Python | 3.11+ | `python --version` |
-| Node.js | 18+ | `node --version` |
-| npm | (bundled with Node) | `npm --version` |
+- **EU FuelEU Maritime:** Escalating penalties reaching €2,400/t deficit on fossil bunker GHG intensity.
+- **IMO Carbon Intensity Indicator (CII):** Annual operational efficiency letter ratings ('A' through 'E') with commercial penalties and risk of trading revocation for low-tier ships.
+- **EU Emissions Trading System (EU ETS):** Mandatory carbon allowance purchasing for voyages calling at EU ports.
+- **IMO Net-Zero Framework (NZF):** Global greenhouse gas emission pricing levies.
+
+Today, ship operators and charterers rely on fragmented spreadsheets, static rulebooks, and guesswork to plan fleet renewals and voyages. Choosing the wrong fuel or speed profile can cost an operator **millions of dollars in non-compliance fines** or lock them into premature, high-capex engine retrofits. 
+
+**NexFleet automates this strategic bottleneck.** A fleet operator selects a vessel, sets economic and regulatory conditions, and receives an optimized, mathematically verified multi-year operating schedule with optimal clean fuel transitions, speed profiles, and regulatory compliance balances.
 
 ---
 
-## 📂 Project Structure
+## What NexFleet does
 
-```text
-Nexfleet/
-├── src/nexfleet/          # Python computational & optimization engine
-│   ├── compliance/        # Scope gating & regime applicability
-│   ├── fleet/              # Fleet definitions & market prices (fleet.json, prices.json)
-│   ├── optimization/       # GA, QIEA, ML predictors, Born-machine MPS, sweep logic
-│   └── regulatory/         # Scenarios & implied price converters (regulations.json)
-├── scripts/                # Data generation and benchmarking scripts
-│   ├── build_demo_data.py            # Primary pipeline (generates demo_data.json)
-│   ├── benchmark_fuel_predictor.py   # LOVO ML benchmark (LightGBM, TT, Physics)
-│   └── benchmark_optimizers.py       # GA vs QIEA performance benchmark
-├── frontend/                # Next.js 16 web dashboard & interactive risk atlas
-│   ├── app/                 # Next.js App Router pages
-│   ├── public/               # Static assets & demo_data.json target
-│   └── lib/AtlasContext.tsx  # React context loading the computed JSON
-├── outputs/                # Generated JSON and benchmark markdown reports
-└── tests/                   # 286 Pytest test cases
+1. **Input & Scenario Selection:** Select any fleet vessel (Container, Bulk Carrier, General Cargo), candidate bunker fuel, carbon price ($0–$500/tCO₂e), and annual cargo throughput multiplier.
+2. **AI Bunker Prediction:** Physics-informed machine learning models (LightGBM, Multi-Layer Perceptron, Polynomial Regression) predict speed- and route-dependent fuel consumption with **0.87% MAPE**, verified by holding out entire unseen ships during training.
+3. **Quantum-Inspired Evolutionary Search:** A Quantum-Inspired Evolutionary Algorithm (QIEA) uses qubit chromosomes and adaptive quantum rotation gates to explore the vast combinatorial decision space of fuels, speeds, routes, and cold-ironing across a 5-year operating horizon (2026–2030).
+4. **Deterministic Multi-Regime Audit:** Statutory compliance engines compute statutory equations for FuelEU Maritime (including voluntary pooling and banking), IMO CII AER curves, EU ETS allowances, and NZF levies.
+5. **Actionable Green Recommendation:** Delivers an instant side-by-side comparison between Business-As-Usual (BAU) operations and the greener schedule, alongside a **1-click Compatible Fuel Alternatives Scorecard** showing marginal abatement costs and break-even carbon prices.
+
+---
+
+### A real repository example
+
+Evaluating a conventional containership (**Vessel A1**) over the 5-year horizon (2026–2030) under a $175/t carbon price:
+
+| Operational Metric | Traditional Status Quo (HFO Scrubber) | Clean Drop-in Blend (B30 Biofuel) | Green e-Fuel (e-Methanol / Dual-Fuel) |
+|---|---|---|---|
+| **5-Year Lifecycle GHG** | 544.1k tCO₂e | **380.2k tCO₂e (−30.1%)** | **59.8k tCO₂e (−89.0%)** |
+| **FuelEU Maritime Penalty** | **$6.91M penalty** | **$0.00 (100% Compliant)** | **$0.00 (100% Compliant)** |
+| **IMO CII Letter Rating** | Rating D *(Revocation Risk)* | **Rating B *(Superior)*** | **Rating A *(Net-Zero Leader)*** |
+| **Engine Retrofit Capex** | $0.00 | **$0.00 (Drop-in Ready)** | Requires Dual-Fuel Injection |
+| **Marginal Abatement Cost** | Baseline | **$106.8 / tCO₂e abated** | $312.4 / tCO₂e abated |
+| **Break-Even Carbon Price** | Baseline | **$281.8 / tCO₂e** | $487.2 / tCO₂e |
+
+*Result:* NexFleet identifies that transitioning Vessel A1 to **B30 Biofuel Blend** eliminates the entire $6.91M FuelEU penalty with zero engine modification expenditure, cutting 163,953 tonnes of CO₂e at an immediate positive return.
+
+---
+
+## AI Predicts. Quantum-Inspired Algorithm Disposes.
+
+NexFleet separates predictive intelligence from combinatorial search and statutory auditing:
+
+- **Machine Learning Predictor:** Models real-world hydrodynamic friction, weather resistance, and fuel energy density. Models are benchmarked via Leave-One-Vessel-Out (LOVO) cross-validation to guarantee generalization to unseen hulls.
+- **Quantum-Inspired Solver (QIEA):** Avoids classical genetic algorithm premature convergence by maintaining quantum superpositions of operational states. Qubits collapse toward Pareto-optimal trade-offs between financial cost and greenhouse gas emissions.
+- **Classical GA Benchmark:** Runs in parallel with identical population, generations, and random seeds to provide a strict, fair baseline comparison.
+- **Deterministic Statutory Gate:** Strict statutory formulas independently verify that every proposed fleet assignment clears minimum annual cargo demand, service availability, and safety thresholds.
+
+---
+
+## Architecture
+
+```mermaid
+graph TD
+    subgraph Presentation_Layer [1. Presentation Tier: Next.js 16 and Tailwind]
+        UI_Dash["Green Fleet Decision Dashboard<br/>(Inputs, Sliders, Live Cards)"]
+        UI_Fuels[": Fuel Matrix Table<br/>(GHG, FuelEU, Abatement Cost)"]
+        UI_Map["Corridor and Fleet MapView<br/>(Leaflet GeoJSON Corridors)"]
+    end
+
+    subgraph API_Tier [2. API Orchestration Tier: FastAPI]
+        API["FastAPI Solver Gateway<br/>/api/optimize · /api/compare-fuels"]
+    end
+
+    subgraph AI_Tier [3. AI and Telemetry Intelligence]
+        ML_Model["Hybrid Fuel Predictor<br/>LightGBM + MLP + Physics<br/>(0.87% MAPE Held-Out Validation)"]
+    end
+
+    subgraph Optimization_Tier [4. Optimization Core]
+        QIEA["Quantum-Inspired Evolutionary Solver (QIEA)<br/>(Qubit representation, rotation gates)"]
+        GA["Classical GA Benchmark<br/>(Fair matched-compute duel)"]
+        Objective["Multi-Objective Pareto Engine<br/>Cost vs GHG vs Demand Feasibility"]
+    end
+
+    subgraph Regulatory_Tier [5. Statutory Compliance Engines]
+        FuelEU["FuelEU Maritime Engine<br/>(WtW GHG intensity, pooling/banking)"]
+        CII["IMO CII Rating Engine<br/>(MEPC.336-339 AER calculation)"]
+        ETS_NZF["EU ETS and IMO NZF Engine<br/>(Carbon allowances and levies)"]
+    end
+
+    subgraph Catalog_Tier [6. Static Datasets and Catalogs]
+        Cat_Fleet["Fleet and Engine Matrix<br/>(A1-C3, Scrubber, Dual-Fuel)"]
+        Cat_Fuels["Alternative Fuels Catalog<br/>(VLSFO, B30, LNG, Methanol)"]
+        Cat_Routes["Shipping Corridors<br/>(Distance, Cargo Demand)"]
+    end
+
+    UI_Dash -->|POST User Parameters| API
+    UI_Fuels -.->|Visual Scorecard| UI_Dash
+    UI_Map -.->|Route Geometry| UI_Dash
+
+    API -->|Dispatch Parameters| QIEA
+    API -->|Dispatch Parameters| GA
+    API -->|Direct Fuel Evaluation| Objective
+
+    QIEA -->|Query Bunker Consumption| ML_Model
+    GA -->|Query Bunker Consumption| ML_Model
+
+    QIEA -->|Candidate Genomes| Objective
+    GA -->|Candidate Genomes| Objective
+
+    Objective -->|Audit GHG Intensity| FuelEU
+    Objective -->|Audit Annual Ratings| CII
+    Objective -->|Audit Carbon Tax Exposure| ETS_NZF
+
+    Cat_Fleet --> API
+    Cat_Fuels --> ML_Model
+    Cat_Routes --> Objective
+
+    Objective -->|Optimized Schedule & Metrics| API
+    API -->|Live Comparative Payload| UI_Dash
 ```
 
+The browser application (Next.js 16) communicates with the Python computational backend (FastAPI). The engine executes live evolutionary optimizations in seconds, cross-checks against deterministic statutory ledgers, and streams back comparative metrics without UI derivation.
+
 ---
 
-## 🚀 Quick Start (Run the Web App)
+## Built with
 
-If you just want to launch and explore the interactive dashboard using the pre-computed demo data:
+- **AI & Analytics:** LightGBM, Scikit-learn, NumPy, SciPy, Physics-Informed Resistance Models
+- **Optimization Core:** Quantum-Inspired Evolutionary Algorithm (QIEA), Classical Genetic Algorithm (GA), Multi-Objective Pareto Frontier Sweep
+- **Regulatory Engines:** Statutory ledgers for FuelEU Maritime (EU 2023/1805), IMO MEPC.336-339(76) CII, EU ETS Directive 2023/959, IMO Net-Zero Framework
+- **Web App:** Next.js 16 (Turbopack), React 19, TypeScript, Tailwind CSS, Leaflet.js
+- **API Server:** FastAPI, Uvicorn, Pydantic v2
+- **Testing & Verification:** Pytest (320+ unit tests), LOVO Cross-Validation Benchmark Suite
+
+---
+
+## What inputs can I use?
+
+NexFleet is designed for heterogeneous commercial ocean fleets across diverse operating profiles:
+
+- **Vessel Bands:**
+  - **Band A (Containerships):** High speed, strict liner transit deadlines, high power demand.
+  - **Band B (Bulk Carriers):** Moderate speed, variable cargo densities, international trade.
+  - **Band C (General Cargo / Feeders):** Regional routes, shorter legs, shore-power eligible.
+- **Propulsion & Engine Types:** Conventional HFO with Scrubber, Dual-Fuel LNG, Dual-Fuel Methanol, Dual-Fuel Ammonia, Dual-Fuel Hydrogen.
+- **Supported Fuels:** Heavy Fuel Oil (HFO), Very Low Sulphur Fuel Oil (VLSFO), Marine Gas Oil (MGO), Liquefied Natural Gas (LNG), B30 Biofuel Blend (30% zero-rated FAME), Green e-Methanol, Green Ammonia, Liquid Hydrogen.
+- **Corridors:** Transpacific, Asia-Europe, Transatlantic, Feeder Inter-Port Networks.
+
+---
+
+## Run locally and reproduce the demo
+
+### 1. Prerequisites
+
+- Python 3.11 or newer
+- Node.js 18 or newer (with npm)
+- Git
+
+Verify your installed versions:
 
 ```bash
-# 1. Navigate to the frontend directory
-cd frontend
-
-# 2. Install dependencies (only needed once, or after pulling changes)
-npm install
-
-# 3. Start the Next.js development server
-npm run dev
+python --version
+node --version
+git --version
 ```
 
-Then open **[http://localhost:3000](http://localhost:3000)** in your browser.
-
-> This mode reads the existing `frontend/public/demo_data.json` — no Python setup required. Skip to the next section only if you need to regenerate the data itself.
-
----
-
-## 🔄 How to Recompute & Update Data (`demo_data.json`)
-
-The frontend reads pre-calculated optimization data from `frontend/public/demo_data.json`. Whenever you change rules, prices, or fleet parameters in `src/nexfleet/`, re-run the pipeline below to refresh the dataset.
-
-### 1. Set Up the Python Environment (first time only)
-
-From the project root:
+### 2. Clone the repository
 
 ```bash
-# Optional but recommended: create a virtual environment
+git clone https://github.com/himanshuvkm/Nexfleet.git
+cd Nexfleet
+```
+
+### 3. Set up the Python computational engine
+
+Create and activate a virtual environment, then install Python dependencies:
+
+```bash
+# Windows
 python -m venv venv
-
-# Activate it
-# Windows:
 venv\Scripts\activate
-# macOS / Linux:
+
+# Linux / macOS
+python3 -m venv venv
 source venv/bin/activate
 
-# Install the project in editable mode with its dependencies
 pip install -e .
 ```
 
-### 2. Run the Build Script
+### 4. Set up the Next.js frontend
 
-Run from the project root. Pick the mode that fits your need:
+In a separate terminal, install the frontend dependencies:
 
-**Option A — Fast run (~5–10 seconds)**
-Best for quick iteration while developing; uses a reduced population/generation count.
 ```bash
-python scripts/build_demo_data.py --fast
+cd frontend
+npm install
+cd ..
 ```
 
-**Option B — Full production run (~30–60 seconds)**
-Runs the full 41-point carbon-price sweep ($0 → $1,000/tCO₂e) with 3-seed stability checks.
-```bash
-python scripts/build_demo_data.py
-```
+### 5. Start the platform
 
-**Option C — Quantum-Inspired Optimizer (QIEA)**
-Same as Option B, but solves using QIEA instead of the classical GA.
-```bash
-python scripts/build_demo_data.py --optimizer qiea
-```
+Start both the computational API backend and the web frontend:
 
-> **Note:** The script writes output to **both** `outputs/demo_data.json` and `frontend/public/demo_data.json` automatically — no manual copy step needed. Refresh the browser (or restart `npm run dev`) to see updated results.
+**Terminal 1 — Python API:**
+```bash
+# With venv activated
+python -m uvicorn nexfleet.api.server:app --port 8000 --reload
+```
+*API is live at: `http://localhost:8000` (Swagger docs: `http://localhost:8000/docs`)*
+
+**Terminal 2 — Next.js Web App:**
+```bash
+cd frontend
+npm run dev
+```
+*Web dashboard is live at: `http://localhost:3000`*
 
 ---
 
-## 📊 Running Benchmarks & Tests
+### 6. Reproduce the complete demo flow
 
-### Fuel Predictor Benchmark (Physics vs LightGBM vs Tensor-Train vs MLP)
-
-Runs a 10-fold Leave-One-Vessel-Out (LOVO) cross-validation comparison:
-
-```bash
-python scripts/benchmark_fuel_predictor.py
-```
-Outputs: `outputs/fuel_predictor_benchmark.json` and `outputs/fuel_predictor_benchmark.md`
-
-### Optimizer Benchmark (GA vs QIEA)
-
-Compares search quality, convergence time, and ablation gains:
-
-```bash
-python scripts/benchmark_optimizers.py
-```
-Outputs: `outputs/optimizer_benchmark.json` and `outputs/optimizer_benchmark.md`
-
-### Full Test Suite
-
-Runs all 286 unit and regression tests:
-
-```bash
-pytest
-```
-
-Add `-v` for verbose per-test output, or `pytest tests/test_solver.py` to run a single file.
+1. Open `http://localhost:3000` in your browser.
+2. In the **Fleet Decarbonization Planner**, select **Vessel A1** (Containership) or **Vessel A4** (Dual-Fuel Methanol).
+3. Click **"Compare Fuel Alternatives"**:
+   - The backend runs `/api/compare-fuels` and immediately displays the scorecard comparing all compatible fuels (VLSFO, MGO, B30 Blend, Methanol) with their 5-year emissions, FuelEU penalty liabilities, cost deltas, and break-even carbon prices.
+4. Adjust the **Carbon Price** slider (e.g. from $175 to $250/tCO₂e) or change **Cargo Demand**.
+5. Click **"Run Live Optimization"**:
+   - The system solves the multi-year schedule using both Classical GA and Quantum QIEA.
+   - The solution banner reveals the winning solver, exact emissions reduction (−30.1% GHG), FuelEU compliance status ($0 penalties), and the complete status-quo vs. optimized comparison table.
+6. Scroll down to explore the **Corridor MapView** and the **Fleet Fuel Adoption Profile**.
+7. Expand the **"How It Works"** drawer to inspect the underlying machine learning benchmarks and mathematical formulas.
 
 ---
 
-### Plotting benchmarking data
-after running all benchmark tests, simple run
-```
-python scripts/generate_benchmark_plots.py
-```
-to generate all the respected plots
+### 7. Run repository verification tests
 
-## ⚙️ Configuration & Environment Variables
-
-Create your local `.env` from the example file:
+Run the test suites to verify system integrity:
 
 ```bash
-# Windows (PowerShell):
-Copy-Item .env.example .env
+# Verify Python engine & regulatory models (320+ unit tests)
+pytest tests/
 
-# macOS / Linux:
-cp .env.example .env
+# Verify Next.js production build & TypeScript types
+cd frontend
+npm run build
 ```
 
-| Variable | Description | Default |
-|---|---|---|
-| `NEXT_PUBLIC_DEFAULT_CARBON_PRICE` | Initial carbon-price slider value shown in the UI ($/tCO₂e) | `100` |
-| `NEXFLEET_OPTIMIZER` | Default solver used by the build pipeline: `ga` or `qiea` | `ga` |
-| `NEXFLEET_FAST_MODE` | Set to `1` to force fast/reduced-iteration mode by default | `0` |
+---
+
+## Prototype boundaries and next steps
+
+- **Current Scope:** Synthetically validated commercial fleets (8–10 representative multi-class vessels), 5-year strategic planning horizon (2026–2030), and statutory ledgers for the 4 major international maritime regulations.
+- **Next Steps:**
+  - Ingestion of live AIS real-time transponder streams and high-resolution metocean (weather, wind, wave) routing APIs.
+  - Multi-operator fleet pooling marketplace for FuelEU compliance credit trading.
+  - Integration with port shore-power availability registries and bunkering spot price feeds.
 
 ---
 
-## 🧠 How It Works Under the Hood
+## Standards and project documents
 
-At a high level, the pipeline runs in this order:
-
-1. **Load static catalogs** — `fleet.json`, `prices.json`, `regulations.json`, `scenarios.json`.
-2. **Scope gating** — determine which regulatory regimes apply to each vessel/route/year.
-3. **Fuel prediction** — Admiralty physics baseline, optionally corrected by a learned residual model (LightGBM / Tensor-Train / MLP).
-4. **Optimization** — solve the fleet deployment problem with GA or QIEA across a carbon-price sweep, extracting decision "switching points."
-5. **Exposure analysis** — multi-seed stability checks plus a Matrix Product State (Born machine) quantum mutual-information cross-check.
-6. **Assembly** — all results are serialized into `demo_data.json` for the frontend to consume.
-
-For full mathematical detail, see the technical report and architecture audit documents in the repo.
-
----
-
-## 🩺 Troubleshooting
-
-| Symptom | Likely Cause | Fix |
-|---|---|---|
-| `ModuleNotFoundError: nexfleet` | Package not installed in editable mode | Run `pip install -e .` from the project root |
-| Frontend shows stale data | `demo_data.json` wasn't regenerated after a change | Re-run `python scripts/build_demo_data.py` and refresh the browser |
-| `npm run dev` fails to start | Dependencies not installed / Node version too old | Run `npm install` inside `frontend/`, confirm Node 18+ |
-| Build script runs very slowly | Running the full (non-`--fast`) sweep | Use `--fast` during development; reserve the full run for final builds |
-| Tests fail after editing regulatory files | Core logic files were modified | Some files are integrity-locked by design — see `BACKEND_AUDIT.md` §15 for the list of files that must not be changed |
-
----
-
-**License / Status:** Internal research & competition prototype. See repository root for license details, if applicable.
+- **FuelEU Maritime:** Regulation (EU) 2023/1805 on the use of renewable and low-carbon fuels in maritime transport.
+- **IMO Operational CII:** MEPC.336(76), MEPC.337(76), MEPC.338(76), and MEPC.339(76) Guidelines.
+- **EU ETS Maritime:** Directive (EU) 2023/959 extending the emissions trading system to maritime transport.
+- **IMO Net-Zero Framework:** 2023 IMO Strategy on Reduction of GHG Emissions from Ships (Resolution MEPC.377(80)).
+- **Project Documentation:**
+  - [Master Research & Product Plan](NEXFLEET_MASTER_RESEARCH_AND_PRODUCT_PLAN.md)
+  - [Current Technical Implementation Report](NEXFLEET_CURRENT_IMPLEMENTATION_REPORT.md)
+  - [Quantum-Inspired Decarbonization Research Paper](Quantum_inspired_fuel_consumption_prediction_and_green_fleet_optimization.md)
