@@ -10,7 +10,7 @@ from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
-from nexfleet.fleet.baseline import build_default_baseline_assignments, evaluate_baseline_plan
+from nexfleet.fleet.baseline import BaselineAssignment, build_default_baseline_assignments, evaluate_baseline_plan
 from nexfleet.fleet.loader import load_fleet, load_prices
 from nexfleet.optimization import qiea_solver, solver
 from nexfleet.optimization.objective import evaluate
@@ -42,6 +42,13 @@ class EstimateRequest(BaseModel):
     scenario_id: Optional[str] = Field(default="approved_text")
     vessel_id: Optional[str] = None
     fuel_id: Optional[str] = None
+
+
+class CompareFuelsRequest(BaseModel):
+    vessel_id: str = Field(default="A1")
+    carbon_price_usd_per_tco2e: float = Field(default=175.0, ge=0.0)
+    cargo_demand_multiplier: float = Field(default=1.0, gt=0.0)
+    scenario_id: Optional[str] = Field(default="approved_text")
 
 
 class OptimizeRequest(BaseModel):
@@ -421,3 +428,158 @@ def optimize_fleet(req: OptimizeRequest) -> Dict[str, Any]:
         },
         "validation_messages": validation_messages,
     }
+
+
+@app.post("/api/compare-fuels")
+def compare_fuels(req: CompareFuelsRequest) -> Dict[str, Any]:
+    """Compare all compatible fuels for a chosen vessel under current operational parameters."""
+    fleet = load_fleet()
+    prices = load_prices()
+    scenarios = load_scenarios()
+
+    vessels = fleet.get("vessels", [])
+    matched_vessel = next((v for v in vessels if v.get("vessel_id") == req.vessel_id), None)
+    if not matched_vessel:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Vessel '{req.vessel_id}' was not found in the fleet catalog.",
+        )
+
+    engine_type = matched_vessel.get("engine_type", "conventional_hfo_scrubber")
+    matrix = fleet.get("engine_fuel_compatibility", {}).get("matrix", {})
+    compatible_fuels = matrix.get(engine_type, ["vlsfo"])
+
+    scenario_id = req.scenario_id or "approved_text"
+    base_reg = resolve_regulations_for_scenario(scenario_id, scenarios=scenarios)
+    regulations = _nzf_price_override(base_reg, req.carbon_price_usd_per_tco2e)
+
+    fleet_adj = copy.deepcopy(fleet)
+    if req.cargo_demand_multiplier != 1.0:
+        for route in fleet_adj.get("routes", {}).values():
+            if "min_capacity_dwt_required" in route:
+                route["min_capacity_dwt_required"] = float(route["min_capacity_dwt_required"]) * req.cargo_demand_multiplier
+            if "annual_cargo_demand_tonne_nm" in route:
+                route["annual_cargo_demand_tonne_nm"] = float(route["annual_cargo_demand_tonne_nm"]) * req.cargo_demand_multiplier
+
+    fuel_names_map = {
+        "hfo_scrubber": "Heavy Fuel Oil (HFO + Scrubber)",
+        "vlsfo": "Very Low Sulphur Fuel Oil (VLSFO)",
+        "mgo": "Marine Gas Oil (MGO)",
+        "lng": "Liquefied Natural Gas (LNG)",
+        "b30_blend": "B30 Biofuel Blend (30% FAME)",
+        "methanol": "Green e-Methanol",
+        "ammonia": "Green e-Ammonia",
+        "hydrogen": "Green Liquid Hydrogen",
+    }
+
+    raw_evals: Dict[str, Dict[str, Any]] = {}
+    horizon_years = fleet_adj.get("horizon_years", [2026, 2027, 2028, 2029, 2030])
+    class_defaults = fleet_adj.get("vessel_class_defaults", {})
+    compat_matrix = fleet_adj.get("engine_fuel_compatibility", {}).get("matrix", {})
+
+    for f_id in compatible_fuels:
+        assignments: List[BaselineAssignment] = []
+        for v in fleet_adj.get("vessels", []):
+            v_id = v["vessel_id"]
+            v_band = v["band"]
+            v_engine = v.get("engine_type", "conventional_hfo_scrubber")
+            v_default_route = v["default_route"]
+            v_speed = class_defaults[v_band]["design_speed_knots"]
+            v_compat = compat_matrix.get(v_engine, ["vlsfo"])
+            v_fuel = f_id if v_id == req.vessel_id else v_compat[0]
+
+            for yr in horizon_years:
+                assignments.append(
+                    BaselineAssignment(
+                        vessel_id=v_id,
+                        year=yr,
+                        route_id=v_default_route,
+                        speed_knots=v_speed,
+                        fuel_id=v_fuel,
+                        shore_power=False,
+                    )
+                )
+
+        eval_res = evaluate_baseline_plan(fleet_adj, assignments, regulations, prices)
+        v_ghg = sum(x["ghg_tco2e"] for x in eval_res.vessel_breakdown if x["vessel_id"] == req.vessel_id)
+        v_fuel_tonnes = sum(x["fuel_tonnes"] for x in eval_res.vessel_breakdown if x["vessel_id"] == req.vessel_id)
+        v_cost = sum(x["total_cost_usd"] for x in eval_res.vessel_breakdown if x["vessel_id"] == req.vessel_id)
+        v_fueleu = sum(x["fueleu_penalty_usd"] for x in eval_res.vessel_breakdown if x["vessel_id"] == req.vessel_id)
+
+        raw_evals[f_id] = {
+            "eval_res": eval_res,
+            "v_ghg": v_ghg,
+            "v_fuel_tonnes": v_fuel_tonnes,
+            "v_cost": v_cost,
+            "v_fueleu": v_fueleu,
+        }
+
+    baseline_fuel_id = compatible_fuels[0]
+    base_v_ghg = raw_evals[baseline_fuel_id]["v_ghg"]
+    base_v_cost = raw_evals[baseline_fuel_id]["v_cost"]
+
+    fuel_comparisons = []
+    for f_id in compatible_fuels:
+        item = raw_evals[f_id]
+        eval_res = item["eval_res"]
+        v_ghg = item["v_ghg"]
+        v_cost = item["v_cost"]
+        v_fueleu = item["v_fueleu"]
+        v_fuel_tonnes = item["v_fuel_tonnes"]
+
+        ghg_saved = round(base_v_ghg - v_ghg, 2)
+        ghg_saved_pct = round((ghg_saved / max(1.0, base_v_ghg)) * 100.0, 1)
+        cost_delta = round(v_cost - base_v_cost, 2)
+
+        if ghg_saved > 0.1:
+            mac = round(cost_delta / ghg_saved, 1)
+        else:
+            mac = 0.0
+
+        if ghg_saved > 1.0:
+            break_even_carbon = max(0.0, round(req.carbon_price_usd_per_tco2e + (cost_delta / ghg_saved), 1))
+        else:
+            break_even_carbon = None
+
+        is_base = (f_id == baseline_fuel_id)
+        if is_base:
+            tag = "Status Quo Baseline"
+        elif ghg_saved_pct >= 20.0 and cost_delta <= 0:
+            tag = "Immediate Win (Lower Cost & Cleaner)"
+        elif ghg_saved_pct >= 25.0:
+            tag = "Highest Decarbonization"
+        elif cost_delta < 0:
+            tag = "Cheapest Option"
+        elif ghg_saved_pct > 15.0:
+            tag = "Balanced Transition"
+        else:
+            tag = "Alternative Option"
+
+        fuel_comparisons.append({
+            "fuel_id": f_id,
+            "fuel_name": fuel_names_map.get(f_id, f_id.replace("_", " ").title()),
+            "is_baseline": is_base,
+            "tag": tag,
+            "vessel_5yr_ghg_tco2e": round(v_ghg, 1),
+            "vessel_5yr_fuel_tonnes": round(v_fuel_tonnes, 1),
+            "vessel_5yr_cost_usd": round(v_cost, 2),
+            "vessel_5yr_fueleu_penalty_usd": round(v_fueleu, 2),
+            "ghg_reduction_tco2e": ghg_saved,
+            "ghg_reduction_percent": ghg_saved_pct,
+            "cost_delta_usd": cost_delta,
+            "abatement_cost_usd_per_tco2e": mac,
+            "break_even_carbon_price_usd": break_even_carbon,
+            "fleet_total_cost_usd": round(eval_res.objective.total_usd, 2),
+            "fleet_lifecycle_emissions_tco2e": round(eval_res.total_ghg_tco2e, 1),
+        })
+
+    return {
+        "status": "completed",
+        "vessel_id": req.vessel_id,
+        "engine_type": engine_type,
+        "carbon_price_usd_per_tco2e": req.carbon_price_usd_per_tco2e,
+        "cargo_demand_multiplier": req.cargo_demand_multiplier,
+        "baseline_fuel_id": baseline_fuel_id,
+        "fuels": fuel_comparisons,
+    }
+
